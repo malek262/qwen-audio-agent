@@ -35,9 +35,16 @@ The app manages the selected backend by default. Agents supporting an external s
 This selects a **Backend Agent service**, not another Gateway for the Desktop client.
 See [backend settings](../configuration/backend.md).
 
+For ACP backends (OpenCode, …) Settings shows the **current model** the backend is actually running
+(reported over ACP session configuration and remembered across restarts) and offers the available
+models as suggestions for the Backend model field. The **Backend permissions** selector chooses
+between asking for every approval (`native`) and auto-approving everything (`full`,
+`QWEN_AUDIO_AGENT_BACKEND_PERMISSION_MODE`).
+
 ## Orb and Auto Sleep
 
-After the configured idle period, the orb can hide automatically. You can also ask it to step down.
+After the configured idle period, the orb can hide automatically. You can also ask it to step down —
+including by voice: tell the assistant to go to sleep and it calls `enter_sleep`, which lands here.
 Sleep **hides the UI and stops microphone input to the voice frontend while retaining the Realtime
 connection and conversation context**. The app stays in the menu bar; backend work is not cancelled,
 and pending announcements continue after waking.

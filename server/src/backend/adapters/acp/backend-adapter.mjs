@@ -269,8 +269,12 @@ export class AcpBackendAdapter {
       acpConnection: this.profile.acpConnection?.kind || null,
       backendAgent: this.coordinatorAgent || null,
       sessionModel: 'one-persistent-backend-agent',
-      currentModel: this.backendModels?.current || null,
-      availableModels: this.backendModels?.available || [],
+      currentModel: this.backendModels?.current
+        || this.registry.getBackendModels()?.current
+        || null,
+      availableModels: this.backendModels?.available
+        || this.registry.getBackendModels()?.available
+        || [],
       capabilities: {
         ...this.profile.capabilities,
         taskUpdates: 'activity',
@@ -546,6 +550,7 @@ export class AcpBackendAdapter {
         current: current || null,
         available: optionChoices(modelOption.options).map(entry => entry.value),
       }
+      this.registry.setBackendModels(this.backendModels)
     }
     return options
   }

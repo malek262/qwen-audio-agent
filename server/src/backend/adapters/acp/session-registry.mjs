@@ -27,6 +27,7 @@ export class AcpSessionRegistry {
     this.coordinators = {}
     this.projects = {}
     this.reconciliations = {}
+    this.backendModels = null
   }
 
   load() {
@@ -47,12 +48,18 @@ export class AcpSessionRegistry {
           value.reconciliations
           && typeof value.reconciliations === 'object'
           && !Array.isArray(value.reconciliations)
+        ))
+        && (value.backendModels === undefined || (
+          value.backendModels
+          && typeof value.backendModels === 'object'
+          && !Array.isArray(value.backendModels)
         )),
       ),
     })
     this.coordinators = parsed.coordinators
     this.projects = parsed.projects || {}
     this.reconciliations = parsed.reconciliations || {}
+    this.backendModels = parsed.backendModels || null
   }
 
   get(key) {
@@ -70,6 +77,24 @@ export class AcpSessionRegistry {
         ? { contractVersion: session.contractVersion }
         : {}),
       updatedAt: Date.now(),
+    }
+    this.save()
+  }
+
+  // Last observed backend model catalog (from ACP configOptions). Persisted so
+  // clients can show the running model before the first session of a process.
+  getBackendModels() {
+    this.load()
+    const value = this.backendModels
+    return value && typeof value === 'object' ? { ...value } : null
+  }
+
+  setBackendModels(models) {
+    if (!models || typeof models !== 'object') return
+    this.load()
+    this.backendModels = {
+      current: models.current || null,
+      available: Array.isArray(models.available) ? models.available : [],
     }
     this.save()
   }

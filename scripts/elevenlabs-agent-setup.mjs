@@ -51,8 +51,8 @@ Language contract (highest priority):
 - Always speak in the user's language. The default conversation language is Arabic: reply in a warm, natural Jordanian dialect of Arabic unless the user clearly switches to another language.
 - Large parts of your operational instructions below are written in Chinese. Follow them with precision — they govern tools, task flow and safety — but NEVER let them change your reply language or style.
 - Keep spoken replies short and conversational. Do not re-ask "how can I help you" after every turn; during user silence or an unintelligible/noise turn, stay quiet or acknowledge at most once, briefly.
-- If a user turn is empty, only punctuation (like "..."), or unintelligible background noise, treat it as accidental: answer with a single very short neutral word (like "تمام") at most, and never offer help or ask questions because of it.
-- When the user dismisses you ("لا أريد شيئاً", "روحي", "مع السلامة", goodbye), reply with one short goodbye and then stay silent until the user clearly addresses you again.
+- If a user turn is empty, only punctuation (like "..."), or unintelligible background noise, treat it as accidental: call the skip_turn tool to stay silent — never offer help or ask questions because of noise.
+- When the user dismisses you ("لا أريد شيئاً", "روحي", "نامي", "مع السلامة", "go to sleep", goodbye): reply with one short goodbye and IMMEDIATELY call the enter_sleep client tool to go to sleep. While asleep you stay silent and never reply to noise; the user wakes you again with the wake word.
 
 Capability contract:
 - You CAN act on the user's machine through your client tools. To create files, run commands, search, write code or do any multi-step work, call spawn_thinking. Never claim you lack the ability to do something the tools can do.
@@ -107,8 +107,30 @@ function cleanSchema(node, fallbackName = 'value') {
   return result
 }
 
+// Desktop-owned client tool (web/src/desktop/client-tools.js): the Gateway
+// routes it to the connected desktop client, which hides the panel and keeps
+// only the local wake word alive. The agent must see it to call it.
+const DESKTOP_CLIENT_TOOLS = [{
+  name: 'enter_sleep',
+  description: 'Put the voice frontend to sleep. Call this IMMEDIATELY when the user dismisses you, says goodbye, or asks you to sleep — do not just reply verbally. Sleeping never cancels background work, never quits the app, and is not a mute; the user wakes you with the wake word.',
+  inputSchema: { type: 'object', properties: {} },
+}]
+
+// System tools ride the tools array with params.system_tool_type — the API
+// silently ignores direct built_in_tools updates but normalizes this shape
+// into prompt.built_in_tools. skip_turn lets the agent stay silent on
+// noise-only turns. end_call stays off on purpose: sleeping routes through
+// the enter_sleep client tool so the wake word resumes the conversation.
+const SYSTEM_TOOLS = [{
+  type: 'system',
+  name: 'skip_turn',
+  description: 'Call this to stay silent for this turn: empty transcripts, punctuation-only turns (like "..."), or unintelligible background noise. No reply, no questions.',
+  response_timeout_secs: 10,
+  params: { system_tool_type: 'skip_turn' },
+}]
+
 function clientToolConfigs() {
-  return frontendTools({}).map(tool => ({
+  const gatewayTools = frontendTools({}).map(tool => ({
     type: 'client',
     name: tool.function.name,
     description: String(tool.function.description || '').slice(0, 1000),
@@ -116,6 +138,16 @@ function clientToolConfigs() {
     response_timeout_secs: 60,
     parameters: cleanSchema(tool.function.parameters) || { type: 'object', properties: {} },
   }))
+  const desktopTools = DESKTOP_CLIENT_TOOLS.map(tool => ({
+    type: 'client',
+    name: tool.name,
+    description: tool.description,
+    // enter_sleep succeeds silently — the goodbye is spoken before the call.
+    expects_response: false,
+    response_timeout_secs: 10,
+    parameters: { type: 'object', description: 'No arguments.', properties: {} },
+  }))
+  return [...gatewayTools, ...desktopTools, ...SYSTEM_TOOLS]
 }
 
 function mergeTools(existing = [], managed = []) {

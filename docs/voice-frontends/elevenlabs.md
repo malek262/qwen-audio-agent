@@ -7,6 +7,17 @@ over a single WebSocket, streams microphone audio, and executes the agent's
 client tool calls — including `spawn_thinking`, which is how the agent starts
 background work on your backend Agent (OpenCode, Qwen Code, …).
 
+Two tool behaviours shape the conversation feel:
+
+- `enter_sleep` (client tool, executed by the desktop app): when the user
+  dismisses the assistant ("go to sleep", "مع السلامة"), the agent calls it
+  and the desktop hides the panel, stops streaming microphone audio, and keeps
+  only the local wake word alive. Saying the wake word resumes the same
+  conversation — no manual reconnect, no ended call.
+- `skip_turn` (ElevenLabs system tool, installed via the tools array): the
+  agent calls it to stay silent on empty or noise-only transcripts instead of
+  answering "...".
+
 Everything else — task orchestration, permissions, memory, result
 announcements — stays with the Gateway and works exactly as with any other
 voice frontend.

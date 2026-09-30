@@ -30,6 +30,7 @@ const DEFAULTS = {
   ...realtimeSettingsValues(),
   agentProtocol: 'none',
   backendModel: '',
+  backendPermissionMode: 'native',
   backendOwnership: 'owned',
   backendUrl: '',
   backendCredential: '',
@@ -59,6 +60,7 @@ const SETTING_KEYS = {
   ...CLIENT_SETTING_KEYS,
   agentProtocol: 'AGENT_PROTOCOL',
   backendModel: 'QWEN_AUDIO_AGENT_BACKEND_MODEL',
+  backendPermissionMode: 'QWEN_AUDIO_AGENT_BACKEND_PERMISSION_MODE',
   backendOwnership: 'QWEN_AUDIO_AGENT_BACKEND_OWNERSHIP',
   nodePath: 'QWEN_AUDIO_AGENT_NODE_PATH',
 }
@@ -287,6 +289,11 @@ export function parseSettings(content = '', fallback = {}, realtimeDrafts = {}) 
       'QWEN_AUDIO_AGENT_BACKEND_MODEL',
       fallback.QWEN_AUDIO_AGENT_BACKEND_MODEL || DEFAULTS.backendModel,
     ) || '').trim(),
+    backendPermissionMode: String(configured(
+      values,
+      'QWEN_AUDIO_AGENT_BACKEND_PERMISSION_MODE',
+      fallback.QWEN_AUDIO_AGENT_BACKEND_PERMISSION_MODE || DEFAULTS.backendPermissionMode,
+    ) || '').trim().toLowerCase() === 'full' ? 'full' : 'native',
     backendOwnership,
     backendUrl,
     backendCredential,
@@ -351,6 +358,9 @@ export function normalizeSettings(settings = {}) {
     backendModel: String(
       settings.backendModel ?? DEFAULTS.backendModel,
     ).trim(),
+    backendPermissionMode: String(
+      settings.backendPermissionMode ?? DEFAULTS.backendPermissionMode,
+    ).trim().toLowerCase() === 'full' ? 'full' : 'native',
     backendOwnership,
     backendUrl,
     backendCredential: backend?.externalService?.credentialEnvironment

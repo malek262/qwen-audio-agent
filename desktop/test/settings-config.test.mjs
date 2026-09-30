@@ -86,6 +86,7 @@ test('reads desktop-owned settings with friendly defaults', () => {
     ...REALTIME_DEFAULTS,
     agentProtocol: 'none',
     backendModel: '',
+    backendPermissionMode: 'native',
     ...BACKEND_CONNECTION_DEFAULTS,
     nodePath: '',
     ...DESKTOP_LANGUAGE_DEFAULT,
@@ -106,6 +107,7 @@ test('shows effective client settings when user config is empty', () => {
     ...REALTIME_DEFAULTS,
     agentProtocol: 'none',
     backendModel: '',
+    backendPermissionMode: 'native',
     ...BACKEND_CONNECTION_DEFAULTS,
     nodePath: '',
     ...DESKTOP_LANGUAGE_DEFAULT,
@@ -174,6 +176,7 @@ test('updates client settings without changing Gateway-owned configuration', () 
     agentProtocol: 'qoder',
     realtimeModel: 'realtime-model',
     backendModel: '',
+    backendPermissionMode: 'full',
     ...BACKEND_CONNECTION_DEFAULTS,
     nodePath: '',
     ...DESKTOP_LANGUAGE_DEFAULT,
@@ -230,6 +233,7 @@ test('an explicitly empty key and backend override stale process values', () => 
     ...REALTIME_DEFAULTS,
     agentProtocol: 'none',
     backendModel: '',
+    backendPermissionMode: 'native',
     ...BACKEND_CONNECTION_DEFAULTS,
     nodePath: '',
     ...DESKTOP_LANGUAGE_DEFAULT,
@@ -592,12 +596,10 @@ test('desktop settings expose external backend connection controls', () => {
   assert.match(html, /id="check-updates"/)
   assert.match(html, /<script src="\.\/settings\.js" type="module"><\/script>/)
   assert.doesNotMatch(html, /<option value="kimi">/)
-  for (const id of [
-    'api-key',
-    'backend-permission-mode',
-  ]) {
-    assert.doesNotMatch(html, new RegExp(`id="${id}"`))
-  }
+  // The permission-mode select is intentional on this fork: the user asked to
+  // control backend auto-approval from the UI.
+  assert.match(html, /id="backend-permission-mode"/)
+  assert.doesNotMatch(html, /id="api-key"/)
 })
 
 test('reads and updates an external OpenClaw connection', () => {

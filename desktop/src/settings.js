@@ -44,6 +44,7 @@ const backendPickerEmpty = document.querySelector('#backend-picker-empty')
 const backendSearch = document.querySelector('#backend-search')
 const refreshBackends = document.querySelector('#refresh-backends')
 const backendModel = document.querySelector('#backend-model')
+const backendPermissionMode = document.querySelector('#backend-permission-mode')
 const backendOwnership = document.querySelector('#backend-ownership')
 const backendUrl = document.querySelector('#backend-url')
 const backendCredential = document.querySelector('#backend-credential')
@@ -707,6 +708,7 @@ function formSettings() {
     ...realtimeForm.values(),
     agentProtocol: selectedBackend(),
     backendModel: backendModel.value,
+    backendPermissionMode: backendPermissionMode.value,
     backendOwnership: backendOwnership.value,
     backendUrl: backendUrl.value,
     backendCredential: backendCredential.value,
@@ -726,6 +728,7 @@ function fingerprint(value) {
     ...realtimeSettingsValues(value),
     agentProtocol: value.agentProtocol,
     backendModel: value.backendModel,
+    backendPermissionMode: value.backendPermissionMode,
     backendOwnership: value.backendOwnership,
     backendUrl: value.backendUrl,
     backendCredential: value.backendCredential,
@@ -1004,6 +1007,7 @@ function render() {
   realtimeForm.load(settings)
   renderBackendOptions(settings.agentProtocol || 'none')
   backendModel.value = settings.backendModel || ''
+  backendPermissionMode.value = settings.backendPermissionMode || 'native'
   backendOwnership.value = settings.backendOwnership || 'owned'
   backendUrl.value = settings.backendUrl || ''
   backendCredential.value = settings.backendCredential || ''
@@ -1019,6 +1023,7 @@ for (const control of [
   orbSkinSelect,
   autoHideSeconds,
   backendModel,
+  backendPermissionMode,
   backendUrl,
   backendCredential,
   nodePathInput,
