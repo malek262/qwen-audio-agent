@@ -165,7 +165,14 @@
                   autocomplete="off"
                   spellcheck="false"
                   placeholder="留空沿用 Agent 配置"
+                  list="backend-model-options"
                 />
+                <datalist id="backend-model-options"></datalist>
+              </div>
+
+              <div class="setting-row" id="backend-current-model-row" hidden>
+                <label>当前模型</label>
+                <span id="backend-current-model" class="toggle-hint"></span>
               </div>
 
               <div class="setting-row backend-connection-row" hidden>

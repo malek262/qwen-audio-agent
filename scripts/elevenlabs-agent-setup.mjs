@@ -23,6 +23,9 @@
 //                          (default: ~/.config/qwaudio/elevenlabs-agent-prompt.md
 //                          when it exists; env: ELEVENLABS_AGENT_PROMPT_FILE)
 //   --prompt-mode <mode>   merge | replace | keep (default: merge)
+//   --reasoning <effort>   LLM reasoning effort (default on every run: low —
+//                          keeps voice latency down; use medium/high for harder
+//                          reasoning at the cost of response time)
 //   --base-url <url>       API base (default: https://api.elevenlabs.io)
 //
 // Re-run after upgrading this repository to refresh the tool definitions and
@@ -48,6 +51,8 @@ Language contract (highest priority):
 - Always speak in the user's language. The default conversation language is Arabic: reply in a warm, natural Jordanian dialect of Arabic unless the user clearly switches to another language.
 - Large parts of your operational instructions below are written in Chinese. Follow them with precision — they govern tools, task flow and safety — but NEVER let them change your reply language or style.
 - Keep spoken replies short and conversational. Do not re-ask "how can I help you" after every turn; during user silence or an unintelligible/noise turn, stay quiet or acknowledge at most once, briefly.
+- If a user turn is empty, only punctuation (like "..."), or unintelligible background noise, treat it as accidental: answer with a single very short neutral word (like "تمام") at most, and never offer help or ask questions because of it.
+- When the user dismisses you ("لا أريد شيئاً", "روحي", "مع السلامة", goodbye), reply with one short goodbye and then stay silent until the user clearly addresses you again.
 
 Capability contract:
 - You CAN act on the user's machine through your client tools. To create files, run commands, search, write code or do any multi-step work, call spawn_thinking. Never claim you lack the ability to do something the tools can do.
@@ -56,7 +61,7 @@ Capability contract:
 - Permission requests from the backend arrive as system context; ask the user once, briefly, and wait for their decision.`
 
 function parseArgs(argv) {
-  const options = { language: 'ar', promptMode: 'merge' }
+  const options = { language: 'ar', promptMode: 'merge', reasoning: 'low' }
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index]
     const next = () => argv[++index]
@@ -68,6 +73,7 @@ function parseArgs(argv) {
     else if (arg === '--first-message') options.firstMessage = next()
     else if (arg === '--prompt-file') options.promptFile = next()
     else if (arg === '--prompt-mode') options.promptMode = next()
+    else if (arg === '--reasoning') options.reasoning = next()
     else if (arg === '--base-url') options.baseUrl = next()
     else if (arg === '--help' || arg === '-h') options.help = true
     else throw new Error(`Unknown argument: ${arg}`)
@@ -215,7 +221,19 @@ async function main() {
       language: options.language,
       prompt,
     },
-    asr: { ...(existingConfig.asr || {}), user_input_audio_format: 'pcm_16000' },
+    asr: { ...(existingConfig.asr || {}), quality: 'high', provider: 'scribe_realtime', user_input_audio_format: 'pcm_16000' },
+    conversation: {
+      ...(existingConfig.conversation || {}),
+      // The service default is 600s and hard-drops longer conversations.
+      max_duration_seconds: 1800,
+    },
+    turn: {
+      ...(existingConfig.turn || {}),
+      // Latest turn model; eagerness stays normal — noise suppression is the
+      // prompt's job, not a slower turn detector's.
+      turn_model: 'turn_v3',
+      turn_eagerness: 'normal',
+    },
     tts: {
       ...(existingConfig.tts || {}),
       agent_output_audio_format: 'pcm_16000',
@@ -225,6 +243,9 @@ async function main() {
         : {}),
     },
   }
+  // Reasoning effort keeps voice latency low; only models that support
+  // configurable reasoning accept the field (gemini-3.8-flash: low/medium/high).
+  if (options.reasoning) prompt.reasoning_effort = options.reasoning
   if (options.firstMessage) conversationConfig.agent.first_message = options.firstMessage
 
   const platformSettings = {

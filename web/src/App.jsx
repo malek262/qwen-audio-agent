@@ -262,6 +262,7 @@ export default function App() {
   const [desktopSurfaceMode, setDesktopSurfaceMode] = useState(
     initialDesktopSurfaceMode,
   )
+  const desktopSurfaceModeRef = useRef(initialDesktopSurfaceMode)
   const [lastInteractionAt, setLastInteractionAt] = useState(Date.now)
   const activeVoiceResponse = useRef('')
   const currentTurnId = useRef('')
@@ -316,7 +317,8 @@ export default function App() {
     if (!desktopOrbMode || !bridge?.setSurface) return
     try {
       const result = await bridge.setSurface(mode)
-      setDesktopSurfaceMode(result?.mode === 'panel' ? 'panel' : 'orb')
+      desktopSurfaceModeRef.current = result?.mode === 'panel' ? 'panel' : 'orb'
+      setDesktopSurfaceMode(desktopSurfaceModeRef.current)
       noteInteraction()
     } catch {
       // A rejected host transition leaves the current presentation intact.
@@ -751,9 +753,12 @@ export default function App() {
       const task = event.task
       if (event.type === 'task.permission.requested') {
         setActivity(t('等待你的确认'))
-        // A permission ask is actionable: open the panel instead of waiting
-        // silently behind the collapsed orb.
-        if (desktopOrbMode) window.qwenAudioAgentDesktop?.wake()
+        // A permission ask is actionable: surface the panel instead of
+        // waiting silently behind the collapsed orb.
+        if (desktopOrbMode) {
+          window.qwenAudioAgentDesktop?.wake()
+          if (desktopSurfaceModeRef.current !== 'panel') void changeDesktopSurface('panel')
+        }
       } else {
         setActivity(t('正在继续处理'))
       }
@@ -838,6 +843,7 @@ export default function App() {
     waitingForVoice,
     triggerSpriteAnimation,
     setDesktopLifecycle,
+    changeDesktopSurface,
   ])
 
   // Keep the microphone alive while the desktop orb is hidden and the wake
@@ -946,9 +952,11 @@ export default function App() {
   useEffect(() => {
     if (!desktopOrbMode) return undefined
     window.qwenAudioAgentDesktop?.loadSurface?.()
-      .then(result => setDesktopSurfaceMode(
-        result?.mode === 'panel' ? 'panel' : 'orb',
-      ))
+      .then(result => {
+        const mode = result?.mode === 'panel' ? 'panel' : 'orb'
+        desktopSurfaceModeRef.current = mode
+        setDesktopSurfaceMode(mode)
+      })
       .catch(() => {})
     return undefined
   }, [])
@@ -1020,6 +1028,7 @@ export default function App() {
         // explicit sleep. Mirror that authoritative surface transition so a
         // later wake cannot render the panel inside the compact orb window.
         setDesktopSurfaceMode('orb')
+        desktopSurfaceModeRef.current = 'orb'
         setActivity(t('已隐藏'))
       }
       if (lifecycle.state === 'waking') setActivity(t('正在显示悬浮球'))

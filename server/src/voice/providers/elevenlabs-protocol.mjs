@@ -23,12 +23,19 @@ function textFromItem(item) {
 export function createElevenLabsProtocol() {
   const responseIds = new Set()
   let activeResponseId = ''
+  let activeTurnEventId = null
   let interrupted = false
   let lastInterruptId = -1
   let muted = false
   // True when the last conversation item written to the service already
   // prompts a reply (user_message); responseCreate must not double-trigger.
   let promptedTurn = false
+  // agent_response carries the final turn TEXT, but audio may keep streaming
+  // after it (v4 synthesizes while the transcript is already final). The turn
+  // therefore ends on a quiet checkpoint, not on agent_response itself.
+  let turnEnded = false
+  let lastActivityAt = 0
+  const TURN_IDLE_MS = 400
 
   const ensureResponse = events => {
     if (!activeResponseId) activeResponseId = id('response')
@@ -42,15 +49,44 @@ export function createElevenLabsProtocol() {
     return activeResponseId
   }
 
-  const finishResponse = (events, status = interrupted ? 'cancelled' : 'completed') => {
+  const finishResponse = (events, status) => {
+    // The interruption flag is single-use: consume it whether or not a
+    // response is active. Leaving it set after a no-op interruption (fired,
+    // for example, when a user_message pre-empts an idle agent) poisons every
+    // later turn as cancelled.
+    const resolved = status ?? (interrupted ? 'cancelled' : 'completed')
+    interrupted = false
     if (!activeResponseId) return
     events.push({
       type: 'response.done',
-      response: { id: activeResponseId, status },
+      response: { id: activeResponseId, status: resolved },
     })
     responseIds.delete(activeResponseId)
     activeResponseId = ''
-    interrupted = false
+    activeTurnEventId = null
+    turnEnded = false
+  }
+
+  // Close an open turn once the service went quiet past its final event. Pings
+  // arrive every ~2s, so the worst-case lag stays bounded without timers.
+  const closeIdleTurn = events => {
+    if (
+      activeResponseId
+      && turnEnded
+      && Date.now() - lastActivityAt > TURN_IDLE_MS
+    ) finishResponse(events)
+  }
+
+  // A different turn event_id after the previous turn's final event means the
+  // next turn started; close the old response first so its audio is never
+  // re-tagged onto the new one.
+  const closeStaleTurn = (events, eventId) => {
+    if (
+      activeResponseId
+      && turnEnded
+      && eventId !== null
+      && eventId !== activeTurnEventId
+    ) finishResponse(events)
   }
 
   return Object.freeze({
@@ -67,32 +103,38 @@ export function createElevenLabsProtocol() {
 
     normalizeIncoming: event => {
       if (!event || typeof event !== 'object') return null
+      const events = []
+      closeIdleTurn(events)
 
       if (event.type === 'conversation_initiation_metadata') {
         const meta = event.conversation_initiation_metadata_event || {}
         const formats = [meta.user_input_audio_format, meta.agent_output_audio_format]
           .filter(Boolean)
         if (formats.some(format => format !== 'pcm_16000')) {
-          return {
+          events.push({
             type: 'error',
             error: {
               type: 'audio_format_mismatch',
               message: `ElevenLabs agent audio formats must both be pcm_16000 (got ${formats.join(', ')}). Run scripts/elevenlabs-agent-setup.mjs or fix the agent's ASR/TTS audio formats.`,
             },
-          }
+          })
+          return events
         }
-        return {
+        events.push({
           type: 'session.created',
           session: { id: String(meta.conversation_id || id('conv')) },
-        }
+        })
+        return events
       }
 
       if (event.type === 'audio') {
         const audio = event.audio_event || {}
         const eventId = Number(audio.event_id ?? -1)
-        if (eventId >= 0 && eventId <= lastInterruptId) return null
-        const events = []
+        if (eventId >= 0 && eventId <= lastInterruptId) return events.length ? events : null
+        closeStaleTurn(events, eventId >= 0 ? eventId : null)
         const responseId = ensureResponse(events)
+        activeTurnEventId = eventId >= 0 ? eventId : activeTurnEventId
+        lastActivityAt = Date.now()
         if (audio.audio_base_64) {
           events.push({
             type: 'response.audio.delta',
@@ -106,8 +148,16 @@ export function createElevenLabsProtocol() {
 
       if (event.type === 'agent_response') {
         const text = String(event.agent_response_event?.agent_response || '').trim()
-        const events = []
+        const eventId = Number(event.agent_response_event?.event_id ?? -1)
+        closeStaleTurn(events, eventId >= 0 ? eventId : null)
+        // A post-interruption agent_response can arrive empty-handed: no audio
+        // preceded it and no text rides it. Emitting a response pair for it
+        // would present a phantom cancelled turn and fail announcement
+        // acknowledgement, so skip contentless events entirely.
+        if (!text && !activeResponseId) return events.length ? events : null
         const responseId = ensureResponse(events)
+        if (eventId >= 0) activeTurnEventId = eventId
+        lastActivityAt = Date.now()
         if (text) {
           events.push({
             type: 'response.audio_transcript.delta',
@@ -121,19 +171,19 @@ export function createElevenLabsProtocol() {
             transcript: text,
           })
         }
-        // agent_response carries the finalized turn text and is the service's
-        // end-of-turn signal; audio for the turn precedes it on the wire.
-        finishResponse(events)
+        // The transcript is final, but trailing audio chunks still belong to
+        // this turn; the turn closes on the next idle checkpoint or boundary.
+        turnEnded = true
         return events
       }
 
       if (event.type === 'agent_chat_response_part') {
         const part = event.text_response_part || {}
         const text = String(part.text || '')
-        if (!text) return null
-        const events = []
+        if (!text) return events.length ? events : null
         const responseId = ensureResponse(events)
         events.push({ type: 'response.text.delta', response_id: responseId, delta: text })
+        // Text-mode turns carry no trailing audio, so stop ends the turn here.
         if (part.type === 'stop') finishResponse(events)
         return events
       }
@@ -141,14 +191,13 @@ export function createElevenLabsProtocol() {
       if (event.type === 'agent_response_correction') {
         // A post-barge-in text correction for an already-closed turn; there is
         // no safe open response to attach it to.
-        return null
+        return events.length ? events : null
       }
 
       if (event.type === 'user_transcript') {
         const transcript = String(
           event.user_transcription_event?.user_transcript || '',
         ).trim()
-        const events = []
         // A committed user turn means any active agent turn is over, even if
         // the service skipped the interruption event.
         finishResponse(events)
@@ -166,7 +215,6 @@ export function createElevenLabsProtocol() {
         const eventId = Number(event.interruption_event?.event_id ?? -1)
         if (eventId >= 0) lastInterruptId = eventId
         interrupted = true
-        const events = []
         // Only close the response. Unlike client-VAD providers, ElevenLabs
         // reports no user-speech start, and its interruption also fires when a
         // gateway user_message pre-empts the agent — synthesizing
@@ -178,7 +226,6 @@ export function createElevenLabsProtocol() {
 
       if (event.type === 'client_tool_call') {
         const call = event.client_tool_call || {}
-        const events = []
         const responseId = ensureResponse(events)
         events.push({
           type: 'response.function_call_arguments.done',
@@ -194,7 +241,7 @@ export function createElevenLabsProtocol() {
       }
 
       if (event.type === 'client_error' || event.type === 'error') {
-        return {
+        events.push({
           type: 'error',
           error: {
             type: String(event.type || 'client_error'),
@@ -205,14 +252,15 @@ export function createElevenLabsProtocol() {
               || 'ElevenLabs conversation error',
             ),
           },
-        }
+        })
+        return events
       }
 
       // ping (answered via serviceReplies), vad_score,
       // tentative_user_transcript, asr_initiation_metadata,
       // agent_response_metadata, mcp_* and other diagnostics carry no
-      // normalized meaning.
-      return null
+      // normalized meaning — but they still checkpoint idle turns.
+      return events.length ? events : null
     },
 
     connectionMessages: ({ session }) => {

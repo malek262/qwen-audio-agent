@@ -775,6 +775,27 @@ function setRealtimeStatus(text, state) {
     : `connection-status ${state === 'connected' ? 'connected' : state === 'connecting' ? 'checking' : 'unavailable'}`
 }
 
+function renderBackendModelInfo() {
+  const backend = runtime?.backend || {}
+  const current = String(backend.currentModel || '').trim()
+  const row = document.querySelector('#backend-current-model-row')
+  const label = document.querySelector('#backend-current-model')
+  if (row && label) {
+    row.hidden = !current
+    label.textContent = current
+  }
+  const datalist = document.querySelector('#backend-model-options')
+  if (datalist) {
+    datalist.replaceChildren(...(Array.isArray(backend.availableModels)
+      ? backend.availableModels.slice(0, 500).map(value => {
+        const option = document.createElement('option')
+        option.value = value
+        return option
+      })
+      : []))
+  }
+}
+
 function renderRuntime() {
   if (!runtime?.gatewayConnected) {
     currentGateway.textContent = t('未连接')
@@ -848,6 +869,7 @@ function renderRuntime() {
     return
   }
   currentBackend.title = ''
+  renderBackendModelInfo()
   setBackendStatus(
     `${label} · ${t(phase === 'connected' ? '已就绪' : '未连接')}`,
     phase === 'connected',

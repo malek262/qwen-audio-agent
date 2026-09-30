@@ -48,6 +48,8 @@ export function normalizeAcpModel(value) {
   return model.toLowerCase() === 'auto' ? '' : model
 }
 
+export { modelConfigOption, optionChoices }
+
 export function stableCoordinatorInstructions(profile) {
   return [
     COORDINATOR_STABLE_INSTRUCTIONS,

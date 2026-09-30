@@ -27,6 +27,7 @@ ELEVENLABS_API_KEY=your-key ELEVENLABS_AGENT_ID=agent_... node scripts/elevenlab
 
 Useful flags: `--language ar` (default), `--llm gemini-3.8-flash`,
 `--voice <voice_id>`, `--tts-model eleven_v4_turbo`,
+`--reasoning low|medium|high` (default `low` for voice latency),
 `--first-message "..."`, `--prompt-mode merge|replace|keep`.
 
 Re-run the script after upgrading this repository so the agent's tools and

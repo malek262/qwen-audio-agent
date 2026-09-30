@@ -52,8 +52,12 @@ async function service(t, key) {
         if (key === 'google-live') {
           this.send({ serverContent: { turnComplete: true, interrupted: status === 'cancelled' } })
         } else if (key === 'elevenlabs') {
-          // agent_response carries the finalized turn text and ends the turn.
+          // agent_response carries the finalized turn text; the turn then
+          // closes at the first quiet heartbeat (the service keeps no explicit
+          // end-of-turn event, and audio may trail the text).
           this.send({ type: 'agent_response', agent_response_event: { agent_response: 'reply' } })
+          setTimeout(() => this.send({ type: 'ping', ping_event: { event_id: 9999, ping_ms: 1 } }), 500)
+            .unref?.()
         } else if (status === 'cancelled' && key === 'doubao-seeduplex') {
           this.send({ type: 'response.canceled', response_id: response.id })
         } else if (status === 'cancelled' && key === 'stepfun') {

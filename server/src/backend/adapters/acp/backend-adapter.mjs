@@ -37,7 +37,9 @@ import {
   configureAcpSession,
   coordinatorMeta,
   coordinatorUsesMcpInstructions,
+  modelConfigOption,
   normalizeAcpModel,
+  optionChoices,
   stableCoordinatorInstructions,
 } from './session-configuration.mjs'
 
@@ -147,6 +149,7 @@ export class AcpBackendAdapter {
     // resumed Sessions. `auto` is retained only as a legacy configuration
     // spelling and is normalized to the same no-override state here.
     this.model = normalizeAcpModel(model)
+    this.backendModels = null
     this.timeoutMs = timeoutMs
     this.directory = directory
     this.baseUrl = clean(baseUrl) || null
@@ -266,6 +269,8 @@ export class AcpBackendAdapter {
       acpConnection: this.profile.acpConnection?.kind || null,
       backendAgent: this.coordinatorAgent || null,
       sessionModel: 'one-persistent-backend-agent',
+      currentModel: this.backendModels?.current || null,
+      availableModels: this.backendModels?.available || [],
       capabilities: {
         ...this.profile.capabilities,
         taskUpdates: 'activity',
@@ -524,7 +529,7 @@ export class AcpBackendAdapter {
   }
 
   async configureSession(session, role) {
-    return configureAcpSession({
+    const options = await configureAcpSession({
       client: this.client,
       coordinatorAgent: this.coordinatorAgent,
       label: this.label,
@@ -532,6 +537,17 @@ export class AcpBackendAdapter {
       profile: this.profile,
       protocol: this.protocol,
     }, session, role)
+    // Surface the backend's real session model (ACP configOptions) to the
+    // health payload, so clients can show which model actually runs.
+    const modelOption = modelConfigOption(options)
+    if (modelOption) {
+      const current = clean(modelOption.currentValue)
+      this.backendModels = {
+        current: current || null,
+        available: optionChoices(modelOption.options).map(entry => entry.value),
+      }
+    }
+    return options
   }
 
   async handlePermission(params, { signal, session } = {}) {

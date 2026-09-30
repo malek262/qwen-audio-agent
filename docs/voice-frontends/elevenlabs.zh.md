@@ -24,6 +24,7 @@ ELEVENLABS_API_KEY=你的key ELEVENLABS_AGENT_ID=agent_... node scripts/elevenla
 
 常用参数：`--language ar`（默认）、`--llm gemini-3.8-flash`、
 `--voice <voice_id>`、`--tts-model eleven_v4_turbo`、
+`--reasoning low|medium|high`（默认 `low`，压低语音延迟）、
 `--first-message "..."`、`--prompt-mode merge|replace|keep`。
 
 升级本仓库后请重新运行该脚本，使 Agent 上的工具与指令保持同步。工具调用建议使用

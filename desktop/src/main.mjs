@@ -432,6 +432,10 @@ async function runtimeStatus(target = appOrigin) {
           label: health.backend.label || null,
           baseUrl: health.backend.baseUrl || null,
           model: health.backend.model || null,
+          currentModel: health.backend.currentModel || null,
+          availableModels: Array.isArray(health.backend.availableModels)
+            ? health.backend.availableModels
+            : [],
           connected: health.backend.ok === true,
           status: health.backend.status || null,
           code: health.backend.code || null,
