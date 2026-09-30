@@ -13,6 +13,7 @@
 | OpenAI Realtime | `gpt-live` | `OPENAI_API_KEY` | [GPT-Live](../voice-frontends/gpt-live.zh.md) |
 | Gemini Live | `google-live` | `GOOGLE_API_KEY` | [Google Live](../voice-frontends/google-live.zh.md) |
 | 豆包 Seeduplex | `doubao-seeduplex` | `DOUBAO_API_KEY` | 模型、音色与服务地址配置见下表 |
+| ElevenLabs Agent | `elevenlabs` | `ELEVENLABS_AGENT_ID`；私有 Agent 还需 `ELEVENLABS_API_KEY`。首次使用先运行 `node scripts/elevenlabs-agent-setup.mjs` 注册客户端工具 | [ElevenLabs Agent](../voice-frontends/elevenlabs.zh.md) |
 | Hugging Face speech-to-speech | `speech-to-speech` | 先启动服务；默认 `ws://127.0.0.1:8765/v1/realtime` | [本地模型链路](../voice-frontends/speech-to-speech.zh.md) |
 | MiniCPM-o 4.5 | `minicpm-o` | 先启动服务；默认 `ws://127.0.0.1:8006/v1/realtime?mode=audio` | [音频 / 视频模式及限制](../voice-frontends/minicpm-o.zh.md) |
 
@@ -42,6 +43,7 @@ STEPFUN_API_KEY=your-stepfun-key
 | GPT-Live | `GPT_LIVE_REALTIME_MODEL` | `GPT_LIVE_REALTIME_VOICE` | `GPT_LIVE_REALTIME_URL` |
 | Google Live | `GOOGLE_LIVE_REALTIME_MODEL` | `GOOGLE_LIVE_REALTIME_VOICE` | `GOOGLE_LIVE_REALTIME_URL` |
 | 豆包 Seeduplex | `DOUBAO_SEEDUPLEX_REALTIME_MODEL` | `DOUBAO_SEEDUPLEX_REALTIME_VOICE` | `DOUBAO_SEEDUPLEX_REALTIME_URL` |
+| ElevenLabs | Agent ID：`ELEVENLABS_AGENT_ID` | `ELEVENLABS_VOICE_ID` | `ELEVENLABS_REALTIME_URL` |
 | speech-to-speech | 在上游服务设置 | 在上游服务设置 | `SPEECH_TO_SPEECH_REALTIME_URL` |
 | MiniCPM-o | 在上游服务设置 | 在上游服务设置 | `MINICPM_O_REALTIME_URL` |
 
@@ -77,6 +79,7 @@ qwenaudio config set --realtime-model qwen-audio-3.0-realtime-flash
 ## 服务差异
 
 - **MiniCPM-o** 当前适配不支持文字输入、结构化工具调用、主动播报或会话上下文恢复；适合语音 / 视觉聊天，不用于后台编排。
+- **ElevenLabs** 的 prompt、LLM、音色与轮次检测由托管 Agent 侧持有；客户端工具由安装脚本注册到 Agent。不支持视频/图片输入；客户端无法取消当前回合（打断由服务端检测）。动态注入的 MCP/OpenAPI 前台工具不可用。
 - **speech-to-speech** 的语言识别、音色、工具调用质量取决于你配置的 STT、LLM 与 TTS。
 - **Google Live** 当前不向重连后的上游会话恢复历史上下文；界面保留记录不等于模型已收到历史。
 - 其他服务的已支持能力和限制，以各自接入页面为准。
