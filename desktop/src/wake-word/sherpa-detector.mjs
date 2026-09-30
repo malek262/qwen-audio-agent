@@ -2,6 +2,7 @@ import { createRequire } from 'node:module'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { ensureWakeWordModel, WAKE_WORD_MODEL_FILES } from './model-manager.mjs'
+import { buildKeywordsFile } from './keyword-builder.mjs'
 
 const require = createRequire(import.meta.url)
 const engines = new Map()
@@ -16,13 +17,14 @@ function pcm16Base64ToFloat32(audio) {
   return samples
 }
 
-async function createEngine({ modelRoot }) {
+async function createEngine({ modelRoot, phrase = '' }) {
   const modelDirectory = await ensureWakeWordModel(modelRoot)
   const { createKws } = require('sherpa-onnx')
-  const keywords = readFileSync(
-    resolve(modelDirectory, WAKE_WORD_MODEL_FILES.keywords),
+  const lexiconContent = readFileSync(
+    resolve(modelDirectory, WAKE_WORD_MODEL_FILES.lexicon),
     'utf8',
   )
+  const keywords = buildKeywordsFile({ phrase, lexiconContent })
   const keywordSpotter = createKws({
     featConfig: { samplingRate: 16000, featureDim: 80 },
     modelConfig: {
@@ -52,7 +54,7 @@ async function createEngine({ modelRoot }) {
 }
 
 async function engineFor(options) {
-  const key = resolve(options.modelRoot)
+  const key = `${resolve(options.modelRoot)}\n${String(options.phrase || '')}`
   if (!engines.has(key)) {
     engines.set(key, createEngine(options).catch(error => {
       engines.delete(key)
@@ -62,8 +64,8 @@ async function engineFor(options) {
   return engines.get(key)
 }
 
-export async function createSherpaWakeWordDetector({ modelRoot }) {
-  const keywordSpotter = await engineFor({ modelRoot })
+export async function createSherpaWakeWordDetector({ modelRoot, phrase = '' }) {
+  const keywordSpotter = await engineFor({ modelRoot, phrase })
   const stream = keywordSpotter.createStream()
   return {
     accept(audio, sampleRate = 16000) {

@@ -26,6 +26,7 @@ const DEFAULTS = {
   autoHideSeconds: 60,
   wakeShortcut: 'CommandOrControl+Shift+Space',
   wakeWordEnabled: false,
+  wakeWordPhrase: '',
   ...realtimeSettingsValues(),
   agentProtocol: 'none',
   backendModel: '',
@@ -43,6 +44,7 @@ const CLIENT_SETTING_KEYS = {
   autoHideSeconds: 'QWEN_AUDIO_DESKTOP_AUTO_HIDE_SECONDS',
   wakeShortcut: 'QWEN_AUDIO_DESKTOP_WAKE_SHORTCUT',
   wakeWordEnabled: 'QWEN_AUDIO_WAKE_WORD_ENABLED',
+  wakeWordPhrase: 'QWEN_AUDIO_WAKE_WORD_PHRASE',
   language: 'QWEN_AUDIO_DESKTOP_LANGUAGE',
 }
 
@@ -273,6 +275,11 @@ export function parseSettings(content = '', fallback = {}, realtimeDrafts = {}) 
         fallback.QWEN_AUDIO_WAKE_WORD_ENABLED || '',
       ),
     ).toLowerCase() === 'true',
+    wakeWordPhrase: String(configured(
+      values,
+      'QWEN_AUDIO_WAKE_WORD_PHRASE',
+      fallback.QWEN_AUDIO_WAKE_WORD_PHRASE || DEFAULTS.wakeWordPhrase,
+    ) || '').trim(),
     ...parseRealtimeSettings(values, fallback, realtimeProvider, realtimeDrafts),
     agentProtocol,
     backendModel: String(configured(
@@ -336,6 +343,9 @@ export function normalizeSettings(settings = {}) {
       settings.wakeShortcut ?? DEFAULTS.wakeShortcut,
     ),
     wakeWordEnabled: Boolean(settings.wakeWordEnabled),
+    wakeWordPhrase: String(
+      settings.wakeWordPhrase ?? DEFAULTS.wakeWordPhrase,
+    ).trim(),
     ...normalizeRealtimeSettings(settings, realtimeProvider),
     agentProtocol,
     backendModel: String(

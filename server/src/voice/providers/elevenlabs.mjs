@@ -45,7 +45,7 @@ function promptItem(text) {
 // Result/permission content rides the non-interrupting contextual channel so
 // context-only routes never trigger a reply; the spoken reply is prompted by
 // response.instructions via the protocol's responseInstructionsItem path.
-const RESULT_RESPONSE_TRIGGER = '上方上下文包含一条后台任务结果及其播报要求。请立即按照要求，用对话语言向用户口头播报该结果。'
+const RESULT_RESPONSE_TRIGGER = 'The context above carries a background task result and its announcement instructions. Announce that result to the user now, out loud, in the conversation language.'
 
 export const elevenlabsProvider = {
   key: 'elevenlabs',

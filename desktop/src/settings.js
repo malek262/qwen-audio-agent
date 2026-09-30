@@ -32,6 +32,7 @@ const wakeShortcut = document.querySelector('#wake-shortcut')
 const recordWakeShortcut = document.querySelector('#record-wake-shortcut')
 const resetWakeShortcut = document.querySelector('#reset-wake-shortcut')
 const wakeWordEnabled = document.querySelector('#wake-word-enabled')
+const wakeWordPhrase = document.querySelector('#wake-word-phrase')
 const desktopLanguage = document.querySelector('#desktop-language')
 const backendList = document.querySelector('#backend-list')
 const backendPicker = document.querySelector('.backend-picker')
@@ -702,6 +703,7 @@ function formSettings() {
     autoHideSeconds: Number(autoHideSeconds.value),
     wakeShortcut: wakeShortcut.value,
     wakeWordEnabled: wakeWordEnabled.checked,
+    wakeWordPhrase: wakeWordPhrase.value.trim(),
     ...realtimeForm.values(),
     agentProtocol: selectedBackend(),
     backendModel: backendModel.value,
@@ -720,6 +722,7 @@ function fingerprint(value) {
     autoHideSeconds: value.autoHideSeconds,
     wakeShortcut: value.wakeShortcut,
     wakeWordEnabled: value.wakeWordEnabled,
+    wakeWordPhrase: value.wakeWordPhrase,
     ...realtimeSettingsValues(value),
     agentProtocol: value.agentProtocol,
     backendModel: value.backendModel,
@@ -971,6 +974,7 @@ function render() {
   autoHideSeconds.value = hideValue
   wakeShortcut.value = settings.wakeShortcut
   wakeWordEnabled.checked = settings.wakeWordEnabled || false
+  wakeWordPhrase.value = settings.wakeWordPhrase || ''
   desktopLanguage.value = settings.language || 'auto'
   applyLanguage(desktopLanguage.value)
   recordingWakeShortcut = false

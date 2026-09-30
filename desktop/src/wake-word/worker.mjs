@@ -3,7 +3,10 @@ import { createSherpaWakeWordDetector } from './sherpa-detector.mjs'
 
 let detector = null
 
-createSherpaWakeWordDetector({ modelRoot: workerData.modelRoot })
+createSherpaWakeWordDetector({
+  modelRoot: workerData.modelRoot,
+  phrase: workerData.phrase || '',
+})
   .then(value => {
     detector = value
     parentPort.postMessage({ type: 'ready' })

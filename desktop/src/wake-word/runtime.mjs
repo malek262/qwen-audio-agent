@@ -1,8 +1,9 @@
 import { Worker } from 'node:worker_threads'
 
 export class DesktopWakeWordRuntime {
-  constructor({ modelRoot, onDetected, onError, WorkerClass = Worker }) {
+  constructor({ modelRoot, phrase = '', onDetected, onError, WorkerClass = Worker }) {
     this.modelRoot = modelRoot
+    this.phrase = String(phrase || '').trim()
     this.onDetected = onDetected
     this.onError = onError
     this.WorkerClass = WorkerClass
@@ -17,6 +18,16 @@ export class DesktopWakeWordRuntime {
     else this.stop()
   }
 
+  setPhrase(phrase) {
+    const next = String(phrase || '').trim()
+    if (next === this.phrase) return
+    this.phrase = next
+    if (this.enabled) {
+      this.stop()
+      this.#start()
+    }
+  }
+
   accept(audio, sampleRate = 16_000) {
     if (!this.enabled || !this.ready || !this.worker || !audio) return false
     this.worker.postMessage({ type: 'audio', audio, sampleRate })
@@ -27,7 +38,7 @@ export class DesktopWakeWordRuntime {
     if (this.worker) return
     const worker = new this.WorkerClass(
       new URL('./worker.mjs', import.meta.url),
-      { workerData: { modelRoot: this.modelRoot } },
+      { workerData: { modelRoot: this.modelRoot, phrase: this.phrase } },
     )
     this.worker = worker
     worker.on('message', message => {

@@ -22,13 +22,13 @@ ELEVENLABS_API_KEY=你的key node scripts/elevenlabs-agent-setup.mjs --create "M
 ELEVENLABS_API_KEY=你的key ELEVENLABS_AGENT_ID=agent_... node scripts/elevenlabs-agent-setup.mjs
 ```
 
-常用参数：`--language ar`（默认）、`--llm gemini-2.5-flash`、
-`--voice <voice_id>`、`--tts-model eleven_flash_v2_5`、
+常用参数：`--language ar`（默认）、`--llm gemini-3.8-flash`、
+`--voice <voice_id>`、`--tts-model eleven_v4_turbo`、
 `--first-message "..."`、`--prompt-mode merge|replace|keep`。
 
 升级本仓库后请重新运行该脚本，使 Agent 上的工具与指令保持同步。工具调用建议使用
-能力较强的 LLM（如 Gemini 2.5 Flash、GPT-5.x、Claude Sonnet）；请避免使用
-Gemini 2.0 Flash。
+工具调用请选择当前一代的模型：Gemini 3.8 Flash（默认，实测 3/3 成功调用）、
+GPT-5.x 或 Claude Sonnet；旧代 Gemini Flash 经常只口头表达意图而不真正调用工具。
 
 ## 2. 配置 Gateway
 
@@ -52,8 +52,20 @@ ELEVENLABS_REALTIME_URL=wss://api.elevenlabs.io/v1/convai/conversation
 ## 阿拉伯语对话
 
 将 Agent 语言设置为阿拉伯语（安装脚本的 `--language ar`，或在 Agent 控制台设置）。
-Scribe 语音识别与 Flash/Multilingual 语音合成模型均原生支持阿拉伯语；请在 Agent 的
+Scribe 语音识别与 v4/Turbo/Multilingual 语音合成模型均原生支持阿拉伯语；请在 Agent 的
 TTS 设置中选择支持阿拉伯语的音色。
+
+## 自定义 Agent
+
+Agent 的行为托管在 ElevenLabs 侧，不随会话下发。修改方式：
+
+1. **人格与偏好规则**：编辑
+   `~/.config/qwaudio/elevenlabs-agent-prompt.md`（可用任意语言；主 prompt
+   默认以阿拉伯语/约旦方言回复），然后重新运行 `npm run elevenlabs:setup`。
+2. **LLM / TTS 模型 / 音色**：带参数重跑脚本，例如
+   `node scripts/elevenlabs-agent-setup.mjs --llm gemini-3.8-flash --tts-model eleven_v4_turbo --voice <voice_id>`。
+3. 安装脚本每次都会重写其管理的 prompt 区段，因此仓库升级后重跑即可刷新
+   工具指令。
 
 ## 说明与限制
 

@@ -94,6 +94,19 @@ import { createGracefulShutdown } from './graceful-shutdown.mjs'
 import { DesktopPresence } from './desktop-presence.mjs'
 import { createElectronGatewayCredentialStore } from './gateway-credential-store.mjs'
 
+// Wayland forbids the window primitives the orb relies on: programmatic
+// placement (drag), always-on-top and even reading the window position are
+// no-ops there. Run on the X11 backend (XWayland) in Wayland sessions so the
+// orb keeps its contract; ELECTRON_OZONE_PLATFORM_HINT stays the user escape
+// hatch.
+if (
+  process.platform === 'linux'
+  && process.env.XDG_SESSION_TYPE === 'wayland'
+  && !process.env.ELECTRON_OZONE_PLATFORM_HINT
+) {
+  app.commandLine.appendSwitch('ozone-platform-hint', 'x11')
+}
+
 // Gateway paths belong to the Gateway; Electron's userData holds only client
 // preferences, credentials, presentation assets and local caches.
 app.setName('Qwen Audio Agent')
@@ -208,6 +221,7 @@ const desktopPresence = new DesktopPresence({
 
 const desktopWakeWord = new DesktopWakeWordRuntime({
   modelRoot: clientPaths.wakeWordModelDirectory,
+  phrase: initialSettings.wakeWordPhrase || '',
   onDetected: () => desktopPresence.wake('wake-word'),
   onError: error => logger.warn('wake_word.failed', { error }),
 })
@@ -1093,6 +1107,7 @@ async function applyDesktopSettings(settings) {
   }
   desktopLanguage = normalized.language
   desktopWakeWordEnabled = normalized.wakeWordEnabled
+  desktopWakeWord.setPhrase(normalized.wakeWordPhrase)
   desktopWakeWord.setEnabled(desktopWakeWordEnabled)
   createTray()
   if (settingsWindow && !settingsWindow.isDestroyed()) {

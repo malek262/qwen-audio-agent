@@ -44,9 +44,17 @@ and pending announcements continue after waking.
 
 Wake it from the menu bar or show shortcut. The macOS default is `⇧⌘ Space`; view or change the
 actual binding in Settings. If wake-word detection is enabled, the microphone is used only for local
-keyword detection during sleep. Say “你好千问” to wake it. The first enable downloads and verifies
+keyword detection during sleep. Say “你好千问” to wake it, or set a custom English wake phrase in
+Settings (common words such as “hey jarvis” work best; the keyword model is bilingual zh/en, so
+Arabic or other languages are not supported). The first enable downloads and verifies
 an approximately 33 MB [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) model, then reuses its cache.
 Detection runs in an isolated Desktop worker; wake-word audio is not uploaded.
+
+### Linux note: Wayland
+
+Wayland compositors forbid programmatic window placement and always-on-top, which the orb needs.
+In Wayland sessions the app therefore runs on the X11 backend (XWayland) automatically; set
+`ELECTRON_OZONE_PLATFORM_HINT=wayland` before launch to opt back into native Wayland.
 
 ## Appearance
 

@@ -13,6 +13,7 @@ import {
 const REALTIME_DEFAULTS = {
   wakeShortcut: 'CommandOrControl+Shift+Space',
   wakeWordEnabled: false,
+  wakeWordPhrase: '',
   realtimeProvider: 'dashscope',
   realtimeBaseUrl: 'wss://dashscope.aliyuncs.com/api-ws/v1/realtime',
   realtimeModel: 'qwen-audio-3.0-realtime-plus',

@@ -40,9 +40,16 @@ Gateway，会复用该实例，否则由应用启动和管理。
 
 可以从菜单栏或显示快捷键唤醒。macOS 默认快捷键为 `⇧⌘ Space`；
 实际按键可在设置中查看或修改。若启用唤醒词，休眠时麦克风仅供本地关键词检测，
-说“你好千问”即可唤醒。首次启用会下载并校验约 33 MB 的
+说“你好千问”即可唤醒，也可在设置中自定义英文唤醒词（常见英文词效果最佳，如
+“hey jarvis”；关键词模型为中英双语，暂不支持阿拉伯语等其他语言）。首次启用会下载并校验约 33 MB 的
 [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) 模型，之后使用本地缓存；
 检测在桌面客户端独立 Worker 中运行，不上传唤醒词音频。
+
+### Linux 说明：Wayland
+
+Wayland 合成器禁止程序化窗口定位与置顶，而悬浮球依赖这两项能力。因此在 Wayland 会话中
+应用会自动改用 X11 后端（XWayland）运行；如需回到原生 Wayland，可在启动前设置
+`ELECTRON_OZONE_PLATFORM_HINT=wayland`。
 
 ## 外观
 

@@ -15,22 +15,45 @@
 // Options:
 //   --create <name>        Create a new agent instead of updating an existing one
 //   --language <code>      Agent language for ASR/TTS (default: ar)
-//   --llm <model>          LLM for the agent (default on --create: gemini-2.5-flash)
+//   --llm <model>          LLM for the agent (default on --create: gemini-3.8-flash)
 //   --voice <voice_id>     TTS voice id (default: keep the agent's current voice)
-//   --tts-model <model>    TTS model id (default on --create: eleven_flash_v2_5)
+//   --tts-model <model>    TTS model id (default on --create: eleven_v4_turbo)
 //   --first-message <text> Spoken greeting (default on --create: none)
+//   --prompt-file <path>   Extra persona/behavior file merged into the prompt
+//                          (default: ~/.config/qwaudio/elevenlabs-agent-prompt.md
+//                          when it exists; env: ELEVENLABS_AGENT_PROMPT_FILE)
 //   --prompt-mode <mode>   merge | replace | keep (default: merge)
 //   --base-url <url>       API base (default: https://api.elevenlabs.io)
 //
 // Re-run after upgrading this repository to refresh the tool definitions and
 // instructions on the agent. The API key is never printed or persisted.
 
+import { existsSync, readFileSync } from 'node:fs'
+import { homedir } from 'node:os'
+import { resolve } from 'node:path'
 import {
   buildFrontendInstructions,
   frontendTools,
 } from '../server/src/frontend/frontend-tools.mjs'
 
 const MANAGED_BY = 'qwen-audio-agent'
+
+// The operational instructions this repository generates are written in its
+// source language (Chinese). The hosted agent must still behave as an
+// Arabic-first assistant, so the master prompt frames the language contract
+// explicitly and quarantines the operational text behind it.
+const MASTER_PROMPT = `You are the voice frontend of qwen-audio-agent: a realtime voice assistant connected to the user's local Gateway, which can delegate real work to a backend coding agent and manage tasks, reminders and notes.
+
+Language contract (highest priority):
+- Always speak in the user's language. The default conversation language is Arabic: reply in a warm, natural Jordanian dialect of Arabic unless the user clearly switches to another language.
+- Large parts of your operational instructions below are written in Chinese. Follow them with precision — they govern tools, task flow and safety — but NEVER let them change your reply language or style.
+- Keep spoken replies short and conversational. Do not re-ask "how can I help you" after every turn; during user silence or an unintelligible/noise turn, stay quiet or acknowledge at most once, briefly.
+
+Capability contract:
+- You CAN act on the user's machine through your client tools. To create files, run commands, search, write code or do any multi-step work, call spawn_thinking. Never claim you lack the ability to do something the tools can do.
+- CRITICAL: when the user asks you to DO something, call the tool IMMEDIATELY in the same turn. Never just say you will do it — a spoken promise without a tool call is a failed turn. Confirm briefly only AFTER the tool call.
+- After delegating, confirm once in one short sentence, then wait. Do not call the same tool again for the same request; results arrive automatically and you announce them out loud.
+- Permission requests from the backend arrive as system context; ask the user once, briefly, and wait for their decision.`
 
 function parseArgs(argv) {
   const options = { language: 'ar', promptMode: 'merge' }
@@ -43,6 +66,7 @@ function parseArgs(argv) {
     else if (arg === '--voice') options.voice = next()
     else if (arg === '--tts-model') options.ttsModel = next()
     else if (arg === '--first-message') options.firstMessage = next()
+    else if (arg === '--prompt-file') options.promptFile = next()
     else if (arg === '--prompt-mode') options.promptMode = next()
     else if (arg === '--base-url') options.baseUrl = next()
     else if (arg === '--help' || arg === '-h') options.help = true
@@ -97,6 +121,9 @@ function mergeTools(existing = [], managed = []) {
 function mergePrompt(existingPrompt, instructions) {
   const existing = String(existingPrompt || '').trim()
   if (!existing || existing === instructions) return instructions
+  // A prompt we previously installed is fully refreshed on every run — this is
+  // what keeps tool instructions current after a repository upgrade.
+  if (existing.startsWith(MASTER_PROMPT.slice(0, 80))) return instructions
   if (existing.includes(instructions.slice(0, 200))) return existing
   return `${instructions}\n\n---\n\n# Additional persona instructions (pre-existing agent prompt)\n\n${existing}`
 }
@@ -121,6 +148,31 @@ async function api(baseUrl, apiKey, method, path, body) {
   return payload
 }
 
+function defaultPromptFile() {
+  return resolve(
+    process.env.QWAUDIO_CONFIG_DIR || resolve(homedir(), '.config', 'qwaudio'),
+    'elevenlabs-agent-prompt.md',
+  )
+}
+
+// Full prompt = master contract (English, language/capability rules) + optional
+// user persona file + the repository's operational instructions (Chinese).
+function buildAgentPrompt(options) {
+  const sections = [MASTER_PROMPT]
+  const promptFile = String(
+    options.promptFile || process.env.ELEVENLABS_AGENT_PROMPT_FILE || '',
+  ).trim() || defaultPromptFile()
+  if (existsSync(promptFile)) {
+    const persona = readFileSync(promptFile, 'utf8').trim()
+    if (persona) sections.push(`# User persona and house rules\n\n${persona}`)
+  }
+  sections.push(
+    '# Operational instructions (source language: Chinese; follow precisely, never change your reply language)\n\n'
+    + buildFrontendInstructions({}),
+  )
+  return sections.join('\n\n---\n\n')
+}
+
 async function main() {
   const options = parseArgs(process.argv.slice(2))
   if (options.help) {
@@ -135,7 +187,7 @@ async function main() {
     throw new Error('Provide ELEVENLABS_AGENT_ID or pass --create <name>')
   }
 
-  const instructions = buildFrontendInstructions({})
+  const instructions = buildAgentPrompt(options)
   const managedTools = clientToolConfigs()
 
   let existing = null
@@ -150,7 +202,10 @@ async function main() {
   if (options.promptMode === 'replace') prompt.prompt = instructions
   else if (options.promptMode === 'merge') prompt.prompt = mergePrompt(existingPrompt.prompt, instructions)
   prompt.tools = mergeTools(existingPrompt.tools, managedTools)
-  const llm = options.llm || (options.create ? 'gemini-2.5-flash' : undefined)
+  // The API rejects payloads that carry both inline tools and tool_ids; this
+  // script manages the inline tool list, so stale tool ids must go.
+  delete prompt.tool_ids
+  const llm = options.llm || (options.create ? 'gemini-3.8-flash' : undefined)
   if (llm) prompt.llm = llm
 
   const conversationConfig = {
@@ -166,7 +221,7 @@ async function main() {
       agent_output_audio_format: 'pcm_16000',
       ...(options.voice ? { voice_id: options.voice } : {}),
       ...(options.ttsModel || options.create
-        ? { model_id: options.ttsModel || 'eleven_flash_v2_5' }
+        ? { model_id: options.ttsModel || 'eleven_v4_turbo' }
         : {}),
     },
   }
@@ -209,9 +264,10 @@ async function main() {
   console.log('  ELEVENLABS_API_KEY=<your key>   # required for private agents')
   console.log(`  ELEVENLABS_AGENT_LANGUAGE=${options.language}`)
   console.log('')
-  console.log('Note: tool descriptions and frontend instructions follow this')
-  console.log("repository's source language; the recommended agent LLMs handle them")
-  console.log('regardless of the conversation language.')
+  console.log('Note: the agent prompt starts with an English master contract')
+  console.log('(language + capability rules). Add your own persona/house rules in')
+  console.log(`  ${defaultPromptFile()}`)
+  console.log('then re-run this script to apply them.')
 }
 
 main().catch(error => {

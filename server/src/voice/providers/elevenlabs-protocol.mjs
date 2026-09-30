@@ -167,11 +167,12 @@ export function createElevenLabsProtocol() {
         if (eventId >= 0) lastInterruptId = eventId
         interrupted = true
         const events = []
+        // Only close the response. Unlike client-VAD providers, ElevenLabs
+        // reports no user-speech start, and its interruption also fires when a
+        // gateway user_message pre-empts the agent — synthesizing
+        // speech_started here would poison the turn state (userSpeaking stuck)
+        // and cancel the very response the runtime just requested.
         finishResponse(events, 'cancelled')
-        events.push({
-          type: 'input_audio_buffer.speech_started',
-          item_id: id('el_speech'),
-        })
         return events
       }
 
@@ -290,7 +291,7 @@ export function createElevenLabsProtocol() {
       }
       return {
         type: 'user_message',
-        text: '请根据最近的上下文更新继续，向用户口头传达需要播报的内容。',
+        text: 'Continue based on the latest context update and briefly tell the user what they need to hear, in the conversation language.',
       }
     },
 

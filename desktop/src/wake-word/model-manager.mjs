@@ -23,6 +23,7 @@ export const WAKE_WORD_MODEL_FILES = Object.freeze({
   decoder: 'decoder-epoch-13-avg-2-chunk-8-left-64.onnx',
   joiner: 'joiner-epoch-13-avg-2-chunk-8-left-64.int8.onnx',
   tokens: 'tokens.txt',
+  lexicon: 'en.phone',
   keywords: 'keywords.txt',
 })
 
@@ -31,6 +32,7 @@ const ARCHIVE_FILES = new Set([
   WAKE_WORD_MODEL_FILES.decoder,
   WAKE_WORD_MODEL_FILES.joiner,
   WAKE_WORD_MODEL_FILES.tokens,
+  WAKE_WORD_MODEL_FILES.lexicon,
 ])
 const REQUIRED_FILES = new Set(Object.values(WAKE_WORD_MODEL_FILES))
 const preparations = new Map()

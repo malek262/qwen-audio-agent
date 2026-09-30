@@ -276,6 +276,19 @@ for (const key of defaultRealtimeProviderRegistry.list().map(provider => provide
         peer.send({ type: 'ping', ping_event: { event_id: 42, ping_ms: 10 } })
         await waitFor(() => peer.messages.some(message => message.type === 'pong' && message.event_id === 42))
       })
+
+      await t.test('interruptions never synthesize user speech state', async t => {
+        // ElevenLabs also fires interruption when a gateway user_message
+        // pre-empts the agent. Treating it as user speech poisons
+        // userSpeaking/announcementWindow and deadlocks result delivery.
+        const { peer, events, flush } = await connect(t, key)
+        peer.send({ type: 'interruption', interruption_event: { event_id: 7 } })
+        await flush()
+        assert.equal(
+          events.some(event => event.type === 'input_audio_buffer.speech_started'),
+          false,
+        )
+      })
     }
 
     await t.test('unexpected disconnect reconnects once and restores context where supported', async t => {

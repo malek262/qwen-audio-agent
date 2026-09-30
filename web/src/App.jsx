@@ -751,6 +751,9 @@ export default function App() {
       const task = event.task
       if (event.type === 'task.permission.requested') {
         setActivity(t('等待你的确认'))
+        // A permission ask is actionable: open the panel instead of waiting
+        // silently behind the collapsed orb.
+        if (desktopOrbMode) window.qwenAudioAgentDesktop?.wake()
       } else {
         setActivity(t('正在继续处理'))
       }
