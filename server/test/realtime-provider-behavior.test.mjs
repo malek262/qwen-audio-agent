@@ -272,10 +272,9 @@ for (const key of defaultRealtimeProviderRegistry.list().map(provider => provide
 
     if (key === 'elevenlabs') {
       await t.test('service pings receive a pong reply', async t => {
-        const { peer, flush } = await connect(t, key)
+        const { peer } = await connect(t, key)
         peer.send({ type: 'ping', ping_event: { event_id: 42, ping_ms: 10 } })
-        await flush()
-        assert.ok(peer.messages.some(message => message.type === 'pong' && message.event_id === 42))
+        await waitFor(() => peer.messages.some(message => message.type === 'pong' && message.event_id === 42))
       })
     }
 
