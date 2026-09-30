@@ -272,6 +272,7 @@
     "build": "npm run build --workspace web --no-global",
     "prepare": "node scripts/prepare-build.mjs",
     "install:global": "node scripts/install-global.mjs",
+    "elevenlabs:setup": "node scripts/elevenlabs-agent-setup.mjs",
     "start": "node cli/bin/qwenaudio.mjs gateway",
     "pregateway": "npm run build",
     "gateway": "node cli/bin/qwenaudio.mjs gateway",

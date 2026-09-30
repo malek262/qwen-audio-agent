@@ -36,6 +36,7 @@ The extension boundary is:
 - Set `conversationItemIdEcho: false` when the service assigns new IDs to acknowledged conversation items. Gateway correlates the single pending item without delays or skipping acknowledgment.
 - Set `imageRequiresAudioStart: true` only if the service requires audio before the first video frame. Gateway primes that timeline with 20 ms of PCM16 silence so camera input does not require opening the microphone.
 - Set `acknowledgesConversationItems: false` when the service accepts input or tool-response messages without sending a conversation-item acknowledgment. Gateway resolves the send after writing the frame.
+- `serviceReplies(rawEvent)` may return a raw wire frame (or a list) that the Gateway writes back immediately, without normalization and without reaching clients. Use it for service-level duties such as ping/pong keepalives.
 - Set `restoreConversationContext: false` when injected history would be interpreted as live user input instead of passive context.
 - `visibility: 'gateway-only'` lets the host select a Provider without exposing it in desktop settings or the public Provider list.
 

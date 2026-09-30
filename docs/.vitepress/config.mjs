@@ -59,6 +59,7 @@ function sidebar(prefix = '') {
             page('StepAudio 3 Realtime', 'StepAudio 3 Realtime', 'voice-frontends/stepfun'),
             page('GPT-Live', 'GPT-Live', 'voice-frontends/gpt-live'),
             page('Google Live', 'Google Live', 'voice-frontends/google-live'),
+            page('ElevenLabs Agent', 'ElevenLabs Agent', 'voice-frontends/elevenlabs'),
             page('Speech-to-Speech', 'Speech-to-Speech', 'voice-frontends/speech-to-speech'),
             page('MiniCPM-o', 'MiniCPM-o', 'voice-frontends/minicpm-o'),
           ],

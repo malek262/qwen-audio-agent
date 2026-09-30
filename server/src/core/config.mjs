@@ -289,6 +289,16 @@ export const config = {
   doubaoSeeduplexRealtimeUrl: realtimeConnections['doubao-seeduplex'].endpoint,
   doubaoSeeduplexModel: realtimeConnections['doubao-seeduplex'].model,
   doubaoSeeduplexVoice: realtimeConnections['doubao-seeduplex'].voice,
+  // Hosted ElevenLabs Agent frontend. The agent id selects which hosted
+  // agent the Gateway connects to; the API key is only required when the
+  // agent is private (enable_auth) or for the setup script.
+  elevenlabsApiKey: realtimeConnections['elevenlabs'].credential,
+  elevenlabsRealtimeUrl: realtimeConnections['elevenlabs'].endpoint,
+  elevenlabsAgentId: realtimeConnections['elevenlabs'].model,
+  elevenlabsVoice: realtimeConnections['elevenlabs'].voice,
+  // Optional per-session agent language override (e.g. "ar"); the agent must
+  // allowlist agent.language overrides, which the setup script configures.
+  elevenlabsLanguage: String(process.env.ELEVENLABS_AGENT_LANGUAGE || '').trim(),
   webSearchProvider: webSearch.provider,
   webSearchMcpUrl: webSearch.mcpUrl,
   webSearchMcpToken: webSearch.mcpToken,

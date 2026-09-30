@@ -18,6 +18,7 @@ export const DEFAULT_MINICPM_O_REALTIME_URL = 'ws://127.0.0.1:8006/v1/realtime?m
 export const DEFAULT_GPT_LIVE_REALTIME_URL = 'wss://api.openai.com/v1/realtime'
 export const DEFAULT_GOOGLE_LIVE_REALTIME_URL = 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent'
 export const DEFAULT_DOUBAO_SEEDUPLEX_REALTIME_URL = 'wss://openspeech.bytedance.com/api/v3/duplex/realtime/dialogue'
+export const DEFAULT_ELEVENLABS_REALTIME_URL = 'wss://api.elevenlabs.io/v1/convai/conversation'
 
 // The desktop always presents these four slots, in this order. Providers
 // only bind the slots they can configure; absent bindings render disabled.
@@ -121,6 +122,22 @@ export const REALTIME_PROVIDERS = Object.freeze([
         environment: ['DOUBAO_SEEDUPLEX_REALTIME_VOICE'] },
       { key: 'doubaoSeeduplexRealtimeUrl', slot: 'endpoint', default: DEFAULT_DOUBAO_SEEDUPLEX_REALTIME_URL,
         environment: ['DOUBAO_SEEDUPLEX_REALTIME_URL'] },
+    ],
+  }),
+  defineProvider({
+    key: 'elevenlabs', label: 'ElevenLabs', aliases: ['elevenlabs-agent', 'elevenlabs-convai', '11labs'],
+    description: 'ElevenLabs Agents · 托管 STT + LLM + TTS · 需先运行 scripts/elevenlabs-agent-setup.mjs',
+    requiredConfiguration: { field: 'elevenlabsAgentId', key: 'ELEVENLABS_AGENT_ID' },
+    settings: [
+      { key: 'elevenlabsApiKey', slot: 'credential', placeholder: '私有 Agent 必填，公开 Agent 可留空',
+        environment: ['ELEVENLABS_API_KEY'],
+        helpUrl: 'https://elevenlabs.io/app/settings/api-keys' },
+      { key: 'elevenlabsAgentId', slot: 'model', type: 'text', label: 'Agent ID', placeholder: 'agent_…',
+        environment: ['ELEVENLABS_AGENT_ID'] },
+      { key: 'elevenlabsVoice', slot: 'voice', placeholder: '留空使用 Agent 默认音色',
+        environment: ['ELEVENLABS_VOICE_ID'] },
+      { key: 'elevenlabsRealtimeUrl', slot: 'endpoint', default: DEFAULT_ELEVENLABS_REALTIME_URL,
+        environment: ['ELEVENLABS_REALTIME_URL'] },
     ],
   }),
   defineProvider({

@@ -36,6 +36,9 @@ async function service(t, key) {
           this.send({ type: 'response.output_text.delta', response_id: id, delta: 'reply' })
         } else if (key === 'minicpm-o') {
           this.send({ type: 'response.output.delta', response_id: id, kind: 'text', text: 'reply' })
+        } else if (key === 'elevenlabs') {
+          this.audioSeq = (this.audioSeq || 0) + 2
+          this.send({ type: 'audio', audio_event: { audio_base_64: Buffer.alloc(2).toString('base64'), event_id: this.audioSeq } })
         } else {
           this.send({ type: 'response.created', response: this.active })
           this.send({ type: 'response.text.delta', response_id: id, delta: 'reply' })
@@ -48,6 +51,9 @@ async function service(t, key) {
         this.active = null
         if (key === 'google-live') {
           this.send({ serverContent: { turnComplete: true, interrupted: status === 'cancelled' } })
+        } else if (key === 'elevenlabs') {
+          // agent_response carries the finalized turn text and ends the turn.
+          this.send({ type: 'agent_response', agent_response_event: { agent_response: 'reply' } })
         } else if (status === 'cancelled' && key === 'doubao-seeduplex') {
           this.send({ type: 'response.canceled', response_id: response.id })
         } else if (status === 'cancelled' && key === 'stepfun') {
@@ -60,6 +66,8 @@ async function service(t, key) {
         const call = { call_id: 'call_contract', name: 'lookup', arguments: '{"q":"test"}' }
         if (key === 'google-live') {
           this.send({ toolCall: { functionCalls: [{ id: call.call_id, name: call.name, args: { q: 'test' } }] } })
+        } else if (key === 'elevenlabs') {
+          this.send({ type: 'client_tool_call', client_tool_call: { tool_name: call.name, tool_call_id: call.call_id, parameters: { q: 'test' } } })
         } else {
           this.active = { id: `response_${++this.replies}` }
           if (key !== 'doubao-seeduplex') this.send({ type: 'response.created', response: this.active })
@@ -74,7 +82,15 @@ async function service(t, key) {
     socket.on('message', raw => {
       const message = JSON.parse(raw.toString())
       peer.messages.push(message)
-      if (message.setup) peer.send({ setupComplete: {} })
+      if (message.type === 'conversation_initiation_client_data') {
+        // The ElevenLabs handshake: client data first, then the service
+        // announces the negotiated session and its audio formats.
+        peer.send({ type: 'conversation_initiation_metadata', conversation_initiation_metadata_event: { conversation_id: 'conv_test', agent_output_audio_format: 'pcm_16000', user_input_audio_format: 'pcm_16000' } })
+      }
+      else if (message.type === 'user_message') peer.start()
+      else if (message.type === 'client_tool_result') peer.start()
+      else if (message.type === 'contextual_update' || message.type === 'pong') {}
+      else if (message.setup) peer.send({ setupComplete: {} })
       else if (message.type === 'session.init') peer.send({ type: 'session.created', session_id: 'native' })
       else if (['session.create', 'session.update'].includes(message.type)) {
         // Speech-to-Speech deliberately does not acknowledge session.update.
@@ -97,7 +113,7 @@ async function service(t, key) {
       }
     })
     if (key === 'minicpm-o') peer.send({ type: 'session.queue_done' })
-    else if (!['google-live', 'doubao-seeduplex'].includes(key)) peer.send({ type: 'session.created', session: {} })
+    else if (!['google-live', 'doubao-seeduplex', 'elevenlabs'].includes(key)) peer.send({ type: 'session.created', session: {} })
   })
   const base = defaultRealtimeProviderRegistry.resolve(key)
   const provider = {
@@ -215,6 +231,11 @@ for (const key of defaultRealtimeProviderRegistry.list().map(provider => provide
       await waitFor(() => frontend.activeResponses.size === 1)
       frontend.cancel()
       assert.equal((await pending).cancelled, true)
+      if (key === 'elevenlabs') {
+        // No client→server turn cancel exists on this service; its own
+        // barge-in detection emits the interruption that ends the turn.
+        peer.send({ type: 'interruption', interruption_event: { event_id: 100000 } })
+      }
       await flush()
       assert.equal(frontend.activeResponses.size, 0)
       peer.autoComplete = true
@@ -248,6 +269,15 @@ for (const key of defaultRealtimeProviderRegistry.list().map(provider => provide
       assert.equal(peer.replies, 2)
       assert.equal(JSON.stringify(peer.messages).includes('obsolete'), false)
     })
+
+    if (key === 'elevenlabs') {
+      await t.test('service pings receive a pong reply', async t => {
+        const { peer, flush } = await connect(t, key)
+        peer.send({ type: 'ping', ping_event: { event_id: 42, ping_ms: 10 } })
+        await flush()
+        assert.ok(peer.messages.some(message => message.type === 'pong' && message.event_id === 42))
+      })
+    }
 
     await t.test('unexpected disconnect reconnects once and restores context where supported', async t => {
       const { provider, connections } = await service(t, key)

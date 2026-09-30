@@ -287,6 +287,11 @@ export class RealtimeFrontend {
   }
 
   handleProviderEvent(providerEvent, { onSessionReady, onSessionError } = {}) {
+    // Service-level replies (e.g. ElevenLabs ping/pong) are protocol duties,
+    // not conversation events; they bypass normalization and never reach clients.
+    for (const reply of normalizedEvents(this.protocol.serviceReplies?.(providerEvent))) {
+      this.sendWireMessage(reply)
+    }
     const events = normalizedEvents(
       this.protocol.normalizeIncoming(providerEvent),
     )

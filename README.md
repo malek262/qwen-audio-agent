@@ -112,6 +112,7 @@ tasks. They integrate independently and can be combined as needed.
 | [Qwen3.8 Omni Flash Realtime](docs/voice-frontends/qwen-omni-realtime.md) | Cloud | Bailian API Key + workspace-specific endpoint | Live video input |
 | [Doubao Seeduplex 3.0 Realtime](docs/configuration/frontend.md#choose-a-service) | Cloud | Volcengine Speech API Key | — |
 | [StepAudio 3 Realtime](docs/voice-frontends/stepfun.md) | Cloud | StepFun API Key | — |
+| [ElevenLabs Agent](docs/voice-frontends/elevenlabs.md) | Cloud | ElevenLabs API Key + Agent ID | Hosted STT + LLM + TTS, Arabic support, tool calling |
 | [Hugging Face Speech-to-Speech](docs/voice-frontends/speech-to-speech.md) | Local | Start the service and set its URL | Configurable STT / LLM / TTS |
 | [MiniCPM-o 4.5](docs/voice-frontends/minicpm-o.md) | Local or cloud | Compatible service URL | Live video input, no tool calling |
 
@@ -155,6 +156,68 @@ npm install -g qwen-audio-agent
 
 For building from source, installing from GitHub, and obtaining a DashScope
 API Key, see the [installation guide](docs/getting-started/install.md).
+
+### Ubuntu (Linux) — recommended setup
+
+On Ubuntu the recommended path is the **CLI + WebUI**: it needs no desktop
+build, updates with one command, and runs the full Gateway (voice frontend +
+backend Agent orchestration).
+
+```bash
+# 1. Install Node.js 24 (skip if you already have Node 22.22.2+)
+curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash -
+sudo apt-get install -y nodejs
+
+# 2. Install qwen-audio-agent from this repository
+npm install -g git+https://github.com/malek262/qwen-audio-agent.git
+
+# 3. Create the configuration file and add your credentials
+qwenaudio config        # prints the config path (default ~/.config/qwaudio/config.env)
+```
+
+Minimal `config.env` for the ElevenLabs voice frontend (see
+[the ElevenLabs guide](docs/voice-frontends/elevenlabs.md)):
+
+```dotenv
+QWEN_AUDIO_REALTIME_PROVIDER=elevenlabs
+ELEVENLABS_AGENT_ID=agent_...
+ELEVENLABS_API_KEY=your-key
+ELEVENLABS_AGENT_LANGUAGE=ar
+```
+
+Then start the Gateway and open a client:
+
+```bash
+qwenaudio            # Gateway — keep this terminal running
+qwenaudio webui      # browser client, in a second terminal
+qwenaudio tui        # or the terminal client
+```
+
+The **desktop app** (AppImage / .deb) is optional on Linux. This fork builds
+both on GitHub Actions — run the *Desktop Linux Build* workflow and download
+the artifacts, then:
+
+```bash
+sudo dpkg -i qwen-audio-agent_*.deb        # or: chmod +x *.AppImage && ./Qwen*.AppImage
+```
+
+**Uninstall (CLI path):**
+
+```bash
+npm uninstall -g qwen-audio-agent
+rm -rf ~/.config/qwaudio          # configuration, memory, tasks, logs
+```
+
+**Uninstall (desktop path):**
+
+```bash
+sudo apt-get remove -y qwen-audio-agent   # or delete the AppImage file
+rm -rf ~/.config/qwaudio "$HOME/.config/Qwen Audio Agent"
+```
+
+Backend Agents (OpenCode, Qwen Code, …) are separate npm packages; remove any
+you no longer need, e.g. `npm uninstall -g @opencode-ai/cli`.
+
 
 ## Quick Start
 
