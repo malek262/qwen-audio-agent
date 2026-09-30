@@ -70,6 +70,9 @@ linux:
   icon: desktop/build/icon.png
   category: Utility
   syncDesktopName: true
+  # deb packaging requires a maintainer identity; the project has no
+  # dedicated contact address, so use the repository noreply.
+  maintainer: qwen-audio-agent contributors <noreply@users.noreply.github.com>
   target:
     - AppImage
     - deb

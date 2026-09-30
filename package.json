@@ -183,6 +183,8 @@
     "docs/voice-frontends/gpt-live.zh.md",
     "docs/voice-frontends/google-live.md",
     "docs/voice-frontends/google-live.zh.md",
+    "docs/voice-frontends/elevenlabs.md",
+    "docs/voice-frontends/elevenlabs.zh.md",
     "docs/scenarios/smart-cockpit.md",
     "docs/scenarios/customer-service.md",
     "docs/scenarios/customer-service.zh.md",
@@ -366,7 +368,7 @@
     "@hono/node-server": "2.0.12",
     "@electron/asar": "4.2.1",
     "@electron/universal": "3.0.6",
-    "fast-uri": "3.1.6",
+    "fast-uri": "4.2.1",
     "qs": "6.16.0",
     "uuid": "11.1.1"
   }
