@@ -32,7 +32,9 @@ Gemini 2.0 Flash。
 
 ## 2. 配置 Gateway
 
-写入 `config.env`（默认 `~/.config/qwaudio/config.env`），或使用桌面端设置界面：
+写入 `config.env`（默认 `~/.config/qwaudio/config.env`）。桌面端也请通过
+`config.env` 设置 Agent ID——桌面端的模型行是固定列表，无法输入自由文本的
+Agent ID：
 
 ```dotenv
 QWEN_AUDIO_REALTIME_PROVIDER=elevenlabs

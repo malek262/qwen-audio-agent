@@ -132,7 +132,7 @@ export const REALTIME_PROVIDERS = Object.freeze([
       { key: 'elevenlabsApiKey', slot: 'credential', placeholder: '私有 Agent 必填，公开 Agent 可留空',
         environment: ['ELEVENLABS_API_KEY'],
         helpUrl: 'https://elevenlabs.io/app/settings/api-keys' },
-      { key: 'elevenlabsAgentId', slot: 'model', type: 'text', label: 'Agent ID', placeholder: 'agent_…',
+      { key: 'elevenlabsAgentId', slot: 'model', placeholder: 'agent_…',
         environment: ['ELEVENLABS_AGENT_ID'] },
       { key: 'elevenlabsVoice', slot: 'voice', placeholder: '留空使用 Agent 默认音色',
         environment: ['ELEVENLABS_VOICE_ID'] },

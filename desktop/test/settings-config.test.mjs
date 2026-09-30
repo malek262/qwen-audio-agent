@@ -38,6 +38,10 @@ const REALTIME_DEFAULTS = {
   doubaoSeeduplexRealtimeUrl: 'wss://openspeech.bytedance.com/api/v3/duplex/realtime/dialogue',
   doubaoSeeduplexRealtimeModel: '1.2.6.1',
   doubaoSeeduplexRealtimeVoice: 'zh_female_vv_jupiter_bigtts',
+  elevenlabsApiKey: '',
+  elevenlabsRealtimeUrl: 'wss://api.elevenlabs.io/v1/convai/conversation',
+  elevenlabsAgentId: '',
+  elevenlabsVoice: '',
 }
 
 const BACKEND_CONNECTION_DEFAULTS = {

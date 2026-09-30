@@ -36,8 +36,9 @@ Flash.
 
 ## 2. Configure the Gateway
 
-Add to `config.env` (default `~/.config/qwaudio/config.env`), or use the
-desktop Settings form:
+Add to `config.env` (default `~/.config/qwaudio/config.env`). On Desktop, set
+the Agent ID through `config.env` as well — the desktop model row is a fixed
+list and cannot accept a free-form agent id:
 
 ```dotenv
 QWEN_AUDIO_REALTIME_PROVIDER=elevenlabs
