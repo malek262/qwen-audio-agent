@@ -158,16 +158,9 @@
               </div>
 
               <div class="setting-row">
-                <label for="backend-model">后台模型</label>
-                <input
-                  id="backend-model"
-                  type="text"
-                  autocomplete="off"
-                  spellcheck="false"
-                  placeholder="留空沿用 Agent 配置"
-                  list="backend-model-options"
-                />
-                <datalist id="backend-model-options"></datalist>
+                <label id="backend-model-label">后台模型</label>
+                <input id="backend-model" type="hidden" />
+                <div id="backend-model-picker" class="settings-picker" aria-labelledby="backend-model-label"></div>
               </div>
 
               <div class="setting-row" id="backend-current-model-row" hidden>

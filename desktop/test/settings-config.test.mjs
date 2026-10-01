@@ -549,7 +549,7 @@ test('desktop settings expose external backend connection controls', () => {
   assert.doesNotMatch(html, /data-provider-panel|provider-segment/)
   assert.match(html, />语音前台</)
   assert.match(html, />后台 Agent</)
-  assert.match(html, /for="backend-model">后台模型</)
+  assert.match(html, /id="backend-model-label">后台模型</)
   assert.match(html, />应用</)
   assert.match(html, /role="tablist"/)
   assert.match(html, /data-settings-tab="voice"/)

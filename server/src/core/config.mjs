@@ -118,7 +118,10 @@ export function resolveBackendModels(env = process.env) {
   const name = backendModelName(common)
   return {
     common,
-    openCode: common ? `alibaba-cn/${name}` : '',
+    // The model id passes through verbatim: users configure full
+    // `provider/model` identifiers (e.g. a custom gateway provider), and
+    // rewriting the provider prefix breaks exactly those setups.
+    openCode: common,
     openClaw: common ? `bailian/${name}` : '',
     qoder: common,
     qwen: common,

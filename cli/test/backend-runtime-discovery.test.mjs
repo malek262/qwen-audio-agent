@@ -613,7 +613,7 @@ test('automatically configures explicit Bailian models for OpenCode and OpenClaw
       DASHSCOPE_API_KEY: 'test-key',
       QWEN_AUDIO_AGENT_BACKEND_MODEL: 'qwen-custom',
     })
-    assert.equal(openCodeOutput.at(-5), 'OPENCODE_MODEL=alibaba-cn/qwen-custom')
+    assert.equal(openCodeOutput.at(-5), 'OPENCODE_MODEL=qwen-custom')
 
     const openClawOutput = run('scripts/runtime/openclaw.mjs', openClaw, {
       DASHSCOPE_API_KEY: 'test-key',

@@ -48,8 +48,9 @@ async function installedVersion() {
 // ── env setup ────────────────────────────────────────────────────────────────
 
 if (!process.env.OPENCODE_MODEL && BACKEND_MODEL && BACKEND_MODEL.toLowerCase() !== 'auto') {
-  const modelId = BACKEND_MODEL.includes('/') ? BACKEND_MODEL.split('/')[1] : BACKEND_MODEL
-  process.env.OPENCODE_MODEL = `alibaba-cn/${modelId}`
+  // Full `provider/model` ids pass through verbatim — rewriting the provider
+  // prefix breaks custom providers (proxies, gateways) configured by the user.
+  process.env.OPENCODE_MODEL = BACKEND_MODEL
 }
 
 if (process.env.QWEN_AUDIO_AGENT_OPENCODE_XDG_CONFIG_HOME) {

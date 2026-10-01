@@ -143,8 +143,16 @@ async function forceSessionModel({
     ? matchingOptionValue(option.options, model)
     : model
   if (option.type === 'select' && !selected) {
-    const available = values.length
-      ? `；可选模型：${values.slice(0, 12).join('、')}`
+    // Suggest catalog entries that share the model-name part first; the raw
+    // head of the catalog is usually an unrelated provider group and reads as
+    // noise in the failure card.
+    const namePart = modelKey(model.slice(model.indexOf('/') + 1))
+    const suggestions = namePart
+      ? values.filter(value => modelKey(value).includes(namePart))
+      : []
+    const shown = (suggestions.length ? suggestions : values).slice(0, 12)
+    const available = shown.length
+      ? `；可选模型：${shown.join('、')}`
       : ''
     throw new AgentError(
       `${label} 当前 Session 不支持模型 ${model}${available}`,

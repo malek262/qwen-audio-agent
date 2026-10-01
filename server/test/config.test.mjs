@@ -151,7 +151,7 @@ test('maps managed provider IDs while preserving backend-native model IDs', () =
     QWEN_AUDIO_AGENT_BACKEND_MODEL: 'qwen3.7-plus',
   }), {
     common: 'qwen3.7-plus',
-    openCode: 'alibaba-cn/qwen3.7-plus',
+    openCode: 'qwen3.7-plus',
     openClaw: 'bailian/qwen3.7-plus',
     qoder: 'qwen3.7-plus',
     qwen: 'qwen3.7-plus',
@@ -219,7 +219,7 @@ test('uses only the unified backend model override', () => {
     OPENCODE_MODEL: 'custom-open/code-model',
   }), {
     common: 'qwen3.7-max',
-    openCode: 'alibaba-cn/qwen3.7-max',
+    openCode: 'qwen3.7-max',
     openClaw: 'bailian/qwen3.7-max',
     qoder: 'qwen3.7-max',
     qwen: 'qwen3.7-max',
@@ -240,7 +240,7 @@ test('preserves opaque backend model IDs outside managed provisioning', () => {
   const models = resolveBackendModels({
     QWEN_AUDIO_AGENT_BACKEND_MODEL: 'provider/model-id',
   })
-  assert.equal(models.openCode, 'alibaba-cn/model-id')
+  assert.equal(models.openCode, 'provider/model-id')
   assert.equal(models.openClaw, 'bailian/model-id')
   for (const backend of [
     'qoder', 'qwen', 'minimax', 'kimi', 'hermes', 'codeBuddy', 'codex', 'claude', 'pi', 'muse', 'acp',

@@ -778,6 +778,215 @@ function setRealtimeStatus(text, state) {
     : `connection-status ${state === 'connected' ? 'connected' : state === 'connecting' ? 'checking' : 'unavailable'}`
 }
 
+// ── Backend model picker ──────────────────────────────────────────────────
+// Grouped, searchable, catalog-validated picker. The selected value lives in
+// the hidden #backend-model input so form/save wiring stays untouched.
+const modelPickerRoot = document.querySelector('#backend-model-picker')
+let modelPickerOpen = false
+let modelCatalogSignature = ''
+const modelGroupCollapsed = new Set()
+
+function backendModelCatalog() {
+  return Array.isArray(runtime?.backend?.availableModels)
+    ? runtime.backend.availableModels.filter(value => typeof value === 'string' && value)
+    : []
+}
+
+function modelPickerLabel() {
+  return backendModel.value.trim() || t('留空沿用 Agent 配置')
+}
+
+function setModelPickerOpen(open, { focus = false } = {}) {
+  modelPickerOpen = open
+  const trigger = modelPickerRoot?.querySelector('.settings-picker-trigger')
+  const popover = modelPickerRoot?.querySelector('.settings-picker-popover')
+  if (!trigger || !popover) return
+  popover.hidden = !open
+  trigger.setAttribute('aria-expanded', String(open))
+  if (open && focus) {
+    requestAnimationFrame(() => popover.querySelector('.settings-picker-search')?.focus())
+  }
+}
+
+function renderModelPickerList() {
+  const list = modelPickerRoot?.querySelector('.settings-picker-list')
+  if (!list) return
+  const query = (modelPickerRoot.querySelector('.settings-picker-search')?.value || '')
+    .trim().toLowerCase()
+  const catalog = backendModelCatalog()
+  const current = backendModel.value.trim()
+  const children = []
+
+  // "Follow the Agent default" — empty value, always first.
+  const defaultRow = document.createElement('button')
+  defaultRow.type = 'button'
+  defaultRow.className = `model-row${current ? '' : ' selected'}`
+  defaultRow.dataset.model = ''
+  const defaultName = document.createElement('span')
+  defaultName.className = 'model-row-name'
+  defaultName.textContent = t('留空沿用 Agent 配置')
+  defaultRow.append(defaultName)
+  if (!query) children.push(defaultRow)
+
+  // A configured value outside the catalog stays visible so it can be
+  // reviewed and cleared instead of silently failing at the backend.
+  if (current && !catalog.includes(current)) {
+    const customRow = document.createElement('button')
+    customRow.type = 'button'
+    customRow.className = 'model-row custom selected'
+    customRow.dataset.model = current
+    const customName = document.createElement('span')
+    customName.className = 'model-row-name'
+    customName.textContent = current
+    customRow.append(customName)
+    const badge = document.createElement('span')
+    badge.className = 'settings-picker-status attention'
+    badge.textContent = t('不在目录中')
+    customRow.append(badge)
+    if (!query || current.toLowerCase().includes(query)) children.push(customRow)
+  }
+
+  if (!catalog.length) {
+    const hint = document.createElement('p')
+    hint.className = 'model-picker-hint'
+    hint.textContent = t('模型目录在后台 Agent 首次运行后加载')
+    children.push(hint)
+  }
+
+  const groups = new Map()
+  for (const id of catalog) {
+    const slash = id.indexOf('/')
+    const provider = slash > 0 ? id.slice(0, slash) : id
+    if (!groups.has(provider)) groups.set(provider, [])
+    groups.get(provider).push(id)
+  }
+  for (const [provider, models] of [...groups.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
+    const visible = query
+      ? models.filter(id => id.toLowerCase().includes(query))
+      : models
+    if (!visible.length) continue
+    const collapsed = !query && modelGroupCollapsed.has(provider)
+    const header = document.createElement('button')
+    header.type = 'button'
+    header.className = `model-group-header${collapsed ? ' collapsed' : ''}`
+    header.dataset.provider = provider
+    header.setAttribute('aria-expanded', String(!collapsed))
+    const chevron = document.createElement('span')
+    chevron.className = 'model-group-chevron'
+    const label = document.createElement('span')
+    label.textContent = provider
+    const count = document.createElement('span')
+    count.className = 'model-group-count'
+    count.textContent = String(models.length)
+    header.append(chevron, label, count)
+    children.push(header)
+    if (collapsed) continue
+    for (const id of visible) {
+      const row = document.createElement('button')
+      row.type = 'button'
+      row.className = `model-row${id === current ? ' selected' : ''}`
+      row.dataset.model = id
+      row.title = id
+      const name = document.createElement('span')
+      name.className = 'model-row-name'
+      name.textContent = id.slice(id.indexOf('/') + 1)
+      row.append(name)
+      children.push(row)
+    }
+  }
+  list.replaceChildren(...children)
+}
+
+function renderModelPicker() {
+  if (!modelPickerRoot) return
+  if (!modelPickerRoot.querySelector('.settings-picker-trigger')) {
+    const trigger = document.createElement('button')
+    trigger.type = 'button'
+    trigger.className = 'settings-picker-trigger'
+    trigger.setAttribute('aria-haspopup', 'listbox')
+    trigger.setAttribute('aria-expanded', 'false')
+    const selection = document.createElement('span')
+    selection.className = 'settings-picker-selection'
+    const name = document.createElement('span')
+    name.className = 'settings-picker-name'
+    selection.append(name)
+    const chevron = document.createElement('span')
+    chevron.className = 'settings-picker-chevron'
+    trigger.append(selection, chevron)
+
+    const popover = document.createElement('div')
+    popover.className = 'settings-picker-popover'
+    popover.hidden = true
+    const searchWrap = document.createElement('div')
+    searchWrap.className = 'settings-search-wrap'
+    const search = document.createElement('input')
+    search.type = 'search'
+    search.className = 'settings-picker-search'
+    search.setAttribute('spellcheck', 'false')
+    search.placeholder = t('搜索模型或提供方')
+    searchWrap.append(search)
+    const list = document.createElement('div')
+    list.className = 'settings-picker-list'
+    list.setAttribute('role', 'listbox')
+    popover.append(searchWrap, list)
+    modelPickerRoot.append(trigger, popover)
+
+    trigger.addEventListener('click', () => {
+      setModelPickerOpen(!modelPickerOpen, { focus: true })
+    })
+    search.addEventListener('input', renderModelPickerList)
+    popover.addEventListener('click', event => {
+      const groupHeader = event.target.closest('.model-group-header')
+      if (groupHeader) {
+        const provider = groupHeader.dataset.provider
+        if (modelGroupCollapsed.has(provider)) modelGroupCollapsed.delete(provider)
+        else modelGroupCollapsed.add(provider)
+        renderModelPickerList()
+        return
+      }
+      const row = event.target.closest('.model-row')
+      if (!row) return
+      backendModel.value = row.dataset.model || ''
+      setModelPickerOpen(false)
+      renderModelPicker()
+      showMessage('')
+      updateApplyState()
+    })
+    document.addEventListener('click', event => {
+      if (modelPickerOpen && !modelPickerRoot.contains(event.target)) {
+        setModelPickerOpen(false)
+      }
+    })
+    modelPickerRoot.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && modelPickerOpen) {
+        setModelPickerOpen(false)
+        trigger.focus()
+      }
+    })
+  }
+  const name = modelPickerRoot.querySelector('.settings-picker-name')
+  name.textContent = modelPickerLabel()
+  name.title = backendModel.value.trim()
+  // Rebuild the list only when the catalog itself changed; user state
+  // (open popover, search text, collapsed groups) survives runtime refreshes.
+  const signature = backendModelCatalog().join('')
+  if (signature !== modelCatalogSignature) {
+    modelCatalogSignature = signature
+    // A fresh catalog starts with every group collapsed except the one
+    // holding the current value.
+    modelGroupCollapsed.clear()
+    const current = backendModel.value.trim()
+    const currentProvider = current.includes('/')
+      ? current.slice(0, current.indexOf('/'))
+      : ''
+    for (const id of backendModelCatalog()) {
+      const provider = id.includes('/') ? id.slice(0, id.indexOf('/')) : id
+      if (provider !== currentProvider) modelGroupCollapsed.add(provider)
+    }
+    renderModelPickerList()
+  }
+}
+
 function renderBackendModelInfo() {
   const backend = runtime?.backend || {}
   const current = String(backend.currentModel || '').trim()
@@ -787,16 +996,7 @@ function renderBackendModelInfo() {
     row.hidden = !current
     label.textContent = current
   }
-  const datalist = document.querySelector('#backend-model-options')
-  if (datalist) {
-    datalist.replaceChildren(...(Array.isArray(backend.availableModels)
-      ? backend.availableModels.slice(0, 500).map(value => {
-        const option = document.createElement('option')
-        option.value = value
-        return option
-      })
-      : []))
-  }
+  renderModelPicker()
 }
 
 function renderRuntime() {
