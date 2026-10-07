@@ -99,13 +99,24 @@ import { createElectronGatewayCredentialStore } from './gateway-credential-store
 // placement (drag), always-on-top and even reading the window position are
 // no-ops there. Run on the X11 backend (XWayland) in Wayland sessions so the
 // orb keeps its contract; ELECTRON_OZONE_PLATFORM_HINT stays the user escape
-// hatch.
+// hatch. Ozone picks its platform before this module runs, so appending a
+// command-line switch here is too late — re-exec once with the env var set.
 if (
   process.platform === 'linux'
   && process.env.XDG_SESSION_TYPE === 'wayland'
   && !process.env.ELECTRON_OZONE_PLATFORM_HINT
+  && !process.env.QWEN_AUDIO_DESKTOP_OZONE_REEXEC
 ) {
-  app.commandLine.appendSwitch('ozone-platform-hint', 'x11')
+  const { spawnSync } = await import('node:child_process')
+  const relaunch = spawnSync(process.execPath, process.argv.slice(1), {
+    stdio: 'inherit',
+    env: {
+      ...process.env,
+      ELECTRON_OZONE_PLATFORM_HINT: 'x11',
+      QWEN_AUDIO_DESKTOP_OZONE_REEXEC: '1',
+    },
+  })
+  process.exit(relaunch.status ?? 0)
 }
 
 // Gateway paths belong to the Gateway; Electron's userData holds only client
