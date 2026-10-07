@@ -136,3 +136,34 @@ test('quarantines an unsupported Session index version', () => {
     rmSync(directory, { recursive: true, force: true })
   }
 })
+
+test('keeps the backend model catalog across routine registry saves', () => {
+  const directory = mkdtempSync(join(tmpdir(), 'qwaudio-acp-models-'))
+  const filePath = join(directory, 'acp-sessions.json')
+  try {
+    const registry = new AcpSessionRegistry({ filePath })
+    registry.setBackendModels({
+      current: 'provider/model-a',
+      available: ['provider/model-a', 'provider/model-b'],
+    })
+    // A routine coordinator write must not drop the persisted catalog.
+    registry.set('qwen:owner:backend', {
+      sessionId: 'session-1',
+      cwd: '/work',
+    })
+
+    const onDisk = JSON.parse(readFileSync(filePath, 'utf8'))
+    assert.deepEqual(onDisk.backendModels, {
+      current: 'provider/model-a',
+      available: ['provider/model-a', 'provider/model-b'],
+    })
+
+    const reloaded = new AcpSessionRegistry({ filePath })
+    assert.deepEqual(reloaded.getBackendModels(), {
+      current: 'provider/model-a',
+      available: ['provider/model-a', 'provider/model-b'],
+    })
+  } finally {
+    rmSync(directory, { recursive: true, force: true })
+  }
+})

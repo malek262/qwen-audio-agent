@@ -169,6 +169,9 @@ export class AcpSessionRegistry {
       coordinators: this.coordinators,
       projects: this.projects,
       reconciliations: this.reconciliations,
+      // The model catalog must survive routine registry saves; omitting it
+      // here wiped the picker source on the first coordinator write.
+      ...(this.backendModels ? { backendModels: this.backendModels } : {}),
     })
   }
 
