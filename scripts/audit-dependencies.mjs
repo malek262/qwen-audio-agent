@@ -29,6 +29,11 @@ const TEMPORARY_BUILD_ADVISORIES = new Map([
     expires: '2026-11-30',
     reason: 'VitePress 1.6.4 的开发服务器间接依赖；npm 当前无可用修复，且不进入生产依赖',
   }],
+  [1241202, {
+    id: 'GHSA-hp3w-g68c-fv3c',
+    expires: '2026-11-30',
+    reason: 'electron-builder 打包工具链经 sprintf-js 的间接依赖；仅参与构建，不进入产物或生产依赖',
+  }],
 ])
 
 function runAuditOnce(args) {
