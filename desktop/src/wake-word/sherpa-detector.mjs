@@ -39,8 +39,8 @@ async function createEngine({ modelRoot, phrase = '' }) {
       debug: 0,
       modelingUnit: 'cjkchar',
     },
-    maxActivePaths: 4,
-    numTrailingBlanks: 1,
+    maxActivePaths: 8,
+    numTrailingBlanks: 2,
     keywordsScore: 1.0,
     keywordsThreshold: 0.25,
     // WASM cannot pass a host path through the native keywords_file field.
