@@ -8,11 +8,22 @@ export const DESKTOP_TASK_CARD_GAP = 8
 export const DESKTOP_TASK_STACK_PADDING = 8
 export const DESKTOP_TASK_STACK_LIFT = 14
 const DESKTOP_TASK_PLACEMENT_HYSTERESIS = 48
+// The visible orb is ~92px centred in the 172×204 transparent window. Snapping
+// flushes the visual — not the window — to the screen edge, so the window may
+// sit partially off-screen by exactly the padding amount.
+export const DESKTOP_ORB_VISUAL_SIZE = 92
+export const DESKTOP_ORB_VISUAL_PAD_X = Math.round((DESKTOP_ORB_WIDTH - DESKTOP_ORB_VISUAL_SIZE) / 2)
+export const DESKTOP_ORB_VISUAL_PAD_Y = Math.round((DESKTOP_ORB_HEIGHT - DESKTOP_ORB_VISUAL_SIZE) / 2)
+export const DESKTOP_ORB_SNAP_DISTANCE = 96
+export const DESKTOP_ORB_EDGE_MARGIN = 8
 
 function clamp(value, minimum, maximum) {
   return Math.min(Math.max(minimum, value), maximum)
 }
 
+// Quadrant-aware panel placement: the panel opens toward the roomier screen
+// half so the orb stays exactly where the user left it — above the panel when
+// the orb sits near the bottom, right of it when near the left edge.
 export function desktopConversationPanelBounds({
   orbBounds,
   workArea,
@@ -21,39 +32,76 @@ export function desktopConversationPanelBounds({
 }) {
   const panelWidth = Math.min(width, workArea.width)
   const panelHeight = Math.min(height, workArea.height)
+  const orbCenterX = orbBounds.x + orbBounds.width / 2
+  const orbCenterY = orbBounds.y + orbBounds.height / 2
+  const growLeft = orbCenterX >= workArea.x + workArea.width / 2
+  const growDown = orbCenterY < workArea.y + workArea.height / 2
   return {
-    // Grow towards the left from the orb's right edge. The orb therefore
-    // returns to the same visual anchor when the panel is collapsed.
     x: clamp(
-      orbBounds.x + orbBounds.width - panelWidth,
+      growLeft ? orbBounds.x + orbBounds.width - panelWidth : orbBounds.x,
       workArea.x,
       workArea.x + workArea.width - panelWidth,
     ),
     y: clamp(
-      orbBounds.y,
+      growDown ? orbBounds.y : orbBounds.y + orbBounds.height - panelHeight,
       workArea.y,
       workArea.y + workArea.height - panelHeight,
     ),
     width: panelWidth,
     height: panelHeight,
+    anchor: {
+      horizontal: growLeft ? 'right' : 'left',
+      vertical: growDown ? 'top' : 'bottom',
+    },
   }
 }
 
-export function desktopOrbAnchorFromPanel({ bounds, workArea }) {
+// Collapsing returns the orb to the corner of the panel it was anchored to
+// when the panel opened — not always the top-right.
+export function desktopOrbAnchorFromPanel({ bounds, workArea, anchor }) {
+  const horizontal = anchor?.horizontal === 'left' ? 'left' : 'right'
+  const vertical = anchor?.vertical === 'bottom' ? 'bottom' : 'top'
   return {
     x: clamp(
-      bounds.x + bounds.width - DESKTOP_ORB_WIDTH,
+      horizontal === 'right'
+        ? bounds.x + bounds.width - DESKTOP_ORB_WIDTH
+        : bounds.x,
       workArea.x,
       workArea.x + workArea.width - DESKTOP_ORB_WIDTH,
     ),
     y: clamp(
-      bounds.y,
+      vertical === 'top'
+        ? bounds.y
+        : bounds.y + bounds.height - DESKTOP_ORB_HEIGHT,
       workArea.y,
       workArea.y + workArea.height - DESKTOP_ORB_HEIGHT,
     ),
     width: DESKTOP_ORB_WIDTH,
     height: DESKTOP_ORB_HEIGHT,
   }
+}
+
+// Edge snap after a drag: flush the orb VISUAL (not the transparent window)
+// to the nearest screen edge when dropped within the snap distance.
+export function desktopOrbSnapPosition({ x, y }, workArea) {
+  const snap = { x, y }
+  const visualLeft = x + DESKTOP_ORB_VISUAL_PAD_X
+  const visualRight = visualLeft + DESKTOP_ORB_VISUAL_SIZE
+  const visualTop = y + DESKTOP_ORB_VISUAL_PAD_Y
+  const visualBottom = visualTop + DESKTOP_ORB_VISUAL_SIZE
+  if (visualLeft - workArea.x < DESKTOP_ORB_SNAP_DISTANCE) {
+    snap.x = workArea.x + DESKTOP_ORB_EDGE_MARGIN - DESKTOP_ORB_VISUAL_PAD_X
+  } else if (workArea.x + workArea.width - visualRight < DESKTOP_ORB_SNAP_DISTANCE) {
+    snap.x = workArea.x + workArea.width - DESKTOP_ORB_EDGE_MARGIN
+      - DESKTOP_ORB_VISUAL_SIZE - DESKTOP_ORB_VISUAL_PAD_X
+  }
+  if (visualTop - workArea.y < DESKTOP_ORB_SNAP_DISTANCE) {
+    snap.y = workArea.y + DESKTOP_ORB_EDGE_MARGIN - DESKTOP_ORB_VISUAL_PAD_Y
+  } else if (workArea.y + workArea.height - visualBottom < DESKTOP_ORB_SNAP_DISTANCE) {
+    snap.y = workArea.y + workArea.height - DESKTOP_ORB_EDGE_MARGIN
+      - DESKTOP_ORB_VISUAL_SIZE - DESKTOP_ORB_VISUAL_PAD_Y
+  }
+  return snap
 }
 
 function normalizedTaskCount(value) {

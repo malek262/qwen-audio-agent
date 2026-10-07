@@ -20,6 +20,13 @@ valid credentials or quota. See [Troubleshooting](../operations/troubleshooting.
 
 ## Orb and Conversation Panel
 
+The orb floats above other windows and follows your drag anywhere on screen; dropping it near a
+screen edge snaps the visible orb flush to that edge. The conversation panel opens toward the
+roomier side of the orb — below it when the orb sits high, above when it sits low, and to the
+left or right depending on the screen half — and collapsing returns the orb to exactly where it
+was. The last position is remembered across launches.
+
+
 Use the “Open conversation” button beside the orb to open the panel. It shows conversation and
 work cards and accepts text, images, and files. The panel and orb are two views of the same client,
 not separate voice connections. The panel's collapse button returns to the orb.

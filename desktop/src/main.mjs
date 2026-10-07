@@ -57,6 +57,7 @@ import {
   desktopConversationPanelBounds,
   desktopOrbAnchorFromPanel,
   desktopOrbBounds,
+  desktopOrbSnapPosition,
   desktopSurfaceLayout,
 } from './desktop-surface-layout.mjs'
 import { createOrbPlacement } from './orb-placement.mjs'
@@ -199,6 +200,9 @@ let desktopTaskCount = 0
 let desktopTaskPlacement = 'below'
 let desktopOrbOffsetX = 0
 let desktopSurfaceMode = 'orb'
+// The panel corner the orb is anchored to while the panel is open; set on
+// expand and honoured on collapse so the orb never jumps corners.
+let desktopPanelAnchor = { horizontal: 'right', vertical: 'top' }
 let reconnectTimer = null
 let embeddedGateway = null
 let borrowedGatewayOrigin = ''
@@ -719,8 +723,18 @@ const orbShell = bindOrbShell({
   },
   onQuit: () => app.quit(),
   onDragEnd: () => {
-    const [x, y] = mainWindow.getPosition()
-    orbPlacement.recordPosition({ x, y })
+    if (desktopSurfaceMode === 'orb') {
+      const [x, y] = mainWindow.getPosition()
+      const workArea = screen.getDisplayMatching(mainWindow.getBounds()).workArea
+      const snapped = desktopOrbSnapPosition({ x, y }, workArea)
+      if (snapped.x !== x || snapped.y !== y) {
+        mainWindow.setPosition(snapped.x, snapped.y)
+      }
+      orbPlacement.recordPosition(snapped)
+    } else {
+      const [x, y] = mainWindow.getPosition()
+      orbPlacement.recordPosition({ x, y })
+    }
     updateDesktopTaskSurface(desktopTaskCount)
   },
 })
@@ -748,23 +762,34 @@ function setDesktopSurfaceMode(requestedMode) {
       orbOffsetX: desktopOrbOffsetX,
     })
     const workArea = screen.getDisplayMatching(orbBounds).workArea
+    const panelBounds = desktopConversationPanelBounds({
+      orbBounds,
+      workArea,
+    })
+    desktopPanelAnchor = panelBounds.anchor || desktopPanelAnchor
     desktopSurfaceMode = 'panel'
     orbShell.cancelDrag()
     mainWindow.setAlwaysOnTop(false)
     mainWindow.setVisibleOnAllWorkspaces(false)
     mainWindow.setSkipTaskbar(false)
     mainWindow.setHasShadow(true)
-    mainWindow.setBounds(desktopConversationPanelBounds({
-      orbBounds,
-      workArea,
-    }), false)
+    mainWindow.setBounds({
+      x: panelBounds.x,
+      y: panelBounds.y,
+      width: panelBounds.width,
+      height: panelBounds.height,
+    }, false)
     mainWindow.show()
     mainWindow.focus()
     return desktopSurfaceMode
   }
 
   const workArea = screen.getDisplayMatching(bounds).workArea
-  const orbAnchor = desktopOrbAnchorFromPanel({ bounds, workArea })
+  const orbAnchor = desktopOrbAnchorFromPanel({
+    bounds,
+    workArea,
+    anchor: desktopPanelAnchor,
+  })
   desktopSurfaceMode = 'orb'
   mainWindow.setSkipTaskbar(true)
   mainWindow.setHasShadow(false)

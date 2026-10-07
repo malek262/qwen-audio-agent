@@ -952,7 +952,10 @@ function renderModelPicker() {
       showMessage('')
       updateApplyState()
     })
-    document.addEventListener('click', event => {
+    document.addEventListener('pointerdown', event => {
+      // pointerdown, not click: group headers re-render the list during the
+      // click bubble, which detaches event.target and would make a
+      // click-based outside test see every group toggle as "outside".
       if (modelPickerOpen && !modelPickerRoot.contains(event.target)) {
         setModelPickerOpen(false)
       }
@@ -1228,6 +1231,7 @@ for (const control of [
   backendCredential,
   nodePathInput,
   wakeWordEnabled,
+  wakeWordPhrase,
   desktopLanguage,
 ]) {
   control.addEventListener('input', () => {

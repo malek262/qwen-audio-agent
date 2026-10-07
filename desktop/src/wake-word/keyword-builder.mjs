@@ -48,7 +48,10 @@ export function keywordLineForPhrase(phrase, lexicon) {
     )
   }
   if (!tokens.length) return null
-  return `${tokens.join(' ')} @${normalized}`
+  // The keywords-file parser splits on whitespace; a space inside the @label
+  // aborts the WASM engine (exit -1). The label is display-only, so map
+  // spaces to underscores — the acoustic match rides the phoneme tokens.
+  return `${tokens.join(' ')} @${normalized.replace(/ /g, '_')}`
 }
 
 export function buildKeywordsFile({ phrase, lexiconContent }) {

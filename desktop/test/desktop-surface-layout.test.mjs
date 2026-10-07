@@ -9,6 +9,7 @@ import {
   desktopConversationPanelBounds,
   desktopOrbAnchorFromPanel,
   desktopOrbBounds,
+  desktopOrbSnapPosition,
   desktopSurfaceLayout,
   desktopSurfaceSize,
   desktopTaskPlacement,
@@ -24,10 +25,12 @@ test('expands a panel from the orb anchor and restores that anchor', () => {
     y: 40,
     width: DESKTOP_PANEL_WIDTH,
     height: DESKTOP_PANEL_HEIGHT,
+    anchor: { horizontal: 'right', vertical: 'top' },
   })
   assert.deepEqual(desktopOrbAnchorFromPanel({
     bounds: panel,
     workArea,
+    anchor: panel.anchor,
   }), orbBounds)
 })
 
@@ -42,16 +45,47 @@ test('keeps the conversation panel and restored orb inside a small display', () 
     y: 20,
     width: 360,
     height: 540,
+    anchor: { horizontal: 'right', vertical: 'bottom' },
   })
   assert.deepEqual(desktopOrbAnchorFromPanel({
     bounds: panel,
     workArea: smallArea,
+    anchor: panel.anchor,
   }), {
     x: -612,
-    y: 20,
+    y: 356,
     width: DESKTOP_ORB_WIDTH,
     height: DESKTOP_ORB_HEIGHT,
   })
+})
+
+test('edge snap flushes the orb visual to the screen edge', () => {
+  // Near the right edge: the window moves past the work area so the ~92px
+  // visual (centred in the 172px window) lands 8px from the edge.
+  const snapped = desktopOrbSnapPosition({ x: 1700, y: 300 }, workArea)
+  assert.equal(snapped.x, workArea.width - 8 - 92 - 40)
+  assert.equal(snapped.y, 300)
+  // Near the top-left corner both axes snap.
+  const corner = desktopOrbSnapPosition({ x: 10, y: 5 }, workArea)
+  assert.equal(corner.x, 8 - 40)
+  assert.equal(corner.y, 8 - 56)
+  // Far from every edge nothing moves.
+  const free = desktopOrbSnapPosition({ x: 500, y: 400 }, workArea)
+  assert.deepEqual(free, { x: 500, y: 400 })
+})
+
+test('panel opens above an orb parked near the bottom', () => {
+  const orbBounds = { x: 900, y: 560, width: 172, height: 204 }
+  const panel = desktopConversationPanelBounds({ orbBounds, workArea })
+  assert.equal(panel.anchor.vertical, 'bottom')
+  // Panel sits directly above the orb, sharing the orb's bottom edge.
+  assert.equal(panel.y + panel.height, orbBounds.y + orbBounds.height)
+  const restored = desktopOrbAnchorFromPanel({
+    bounds: panel,
+    workArea,
+    anchor: panel.anchor,
+  })
+  assert.deepEqual(restored, orbBounds)
 })
 
 test('keeps the compact orb surface without task cards', () => {
