@@ -98,25 +98,28 @@ import { createElectronGatewayCredentialStore } from './gateway-credential-store
 
 // Wayland forbids the window primitives the orb relies on: programmatic
 // placement (drag), always-on-top and even reading the window position are
-// no-ops there. Run on the X11 backend (XWayland) in Wayland sessions so the
-// orb keeps its contract; ELECTRON_OZONE_PLATFORM_HINT stays the user escape
-// hatch. Ozone picks its platform before this module runs, so appending a
-// command-line switch here is too late — re-exec once with the env var set.
+// silent no-ops there. The orb must run on the X11 backend (XWayland) in
+// Wayland sessions. Ozone picks its platform before this module runs and
+// Electron 43 ignores ELECTRON_OZONE_PLATFORM_HINT entirely (verified: the
+// GPU process keeps --ozone-platform=wayland); only the --ozone-platform
+// command-line switch takes effect, so re-exec once with it appended.
 if (
   process.platform === 'linux'
   && process.env.XDG_SESSION_TYPE === 'wayland'
-  && !process.env.ELECTRON_OZONE_PLATFORM_HINT
   && !process.env.QWEN_AUDIO_DESKTOP_OZONE_REEXEC
 ) {
   const { spawnSync } = await import('node:child_process')
-  const relaunch = spawnSync(process.execPath, process.argv.slice(1), {
-    stdio: 'inherit',
-    env: {
-      ...process.env,
-      ELECTRON_OZONE_PLATFORM_HINT: 'x11',
-      QWEN_AUDIO_DESKTOP_OZONE_REEXEC: '1',
+  const relaunch = spawnSync(
+    process.execPath,
+    [...process.argv.slice(1), '--ozone-platform=x11'],
+    {
+      stdio: 'inherit',
+      env: {
+        ...process.env,
+        QWEN_AUDIO_DESKTOP_OZONE_REEXEC: '1',
+      },
     },
-  })
+  )
   process.exit(relaunch.status ?? 0)
 }
 
@@ -1159,6 +1162,10 @@ async function applyDesktopSettings(settings) {
     realtimeProvider: normalized.realtimeProvider,
     backend: normalized.agentProtocol,
     remoteGateway: remote,
+    // The persisted wake-word state, not just whether it changed: the changes
+    // map alone made a healthy save look like the feature had been disabled.
+    wakeWordEnabled: normalized.wakeWordEnabled,
+    wakeWordPhrase: normalized.wakeWordPhrase,
     changes: {
       gateway: gatewayChanged,
       realtime: realtimeChanged,
@@ -1170,6 +1177,7 @@ async function applyDesktopSettings(settings) {
       autoHide: autoHideChanged,
       wakeShortcut: wakeShortcutChanged,
       wakeWord: wakeWordChanged,
+      wakeWordPhrase: previous.wakeWordPhrase !== normalized.wakeWordPhrase,
       language: languageChanged,
     },
   })

@@ -100,7 +100,9 @@ export function bindOrbShell({
       pointerY: point.y,
       windowX,
       windowY,
+      moved: 0,
     }
+    logger?.info('desktop.drag_started', { windowX, windowY })
   })
 
   on(ORB_CHANNELS.dragMove, (event, point) => {
@@ -120,6 +122,12 @@ export function bindOrbShell({
     }
     try {
       window.setPosition(x, y)
+      dragState.moved += 1
+      if (dragState.moved === 1) {
+        // First applied move of each drag: proves the IPC chain and the
+        // platform backend both accept programmatic placement.
+        logger?.info('desktop.drag_first_move', { x, y })
+      }
     } catch (error) {
       logger?.warn('desktop.drag_position_failed', { x, y, error })
       dragState = null
@@ -128,6 +136,7 @@ export function bindOrbShell({
 
   on(ORB_CHANNELS.dragEnd, event => {
     if (fromOrbWindow(event)) {
+      logger?.info('desktop.drag_ended', { moves: dragState?.moved ?? 0 })
       dragState = null
       // Hosts persist the new position here; see createOrbPlacement.
       onDragEnd?.()
