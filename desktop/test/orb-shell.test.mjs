@@ -99,6 +99,23 @@ test('drags move the window and report the drop for persistence', () => {
   assert.deepEqual(calls, ['drag-end'])
 })
 
+test('drag coordinates never hand Electron a negative zero', () => {
+  // Math.round(-0.2) === -0, Electron's int conversion throws on -0, and JSON
+  // logs -0 as 0 — this combination froze the orb mid-drag in production.
+  const { ipc, window, event } = shellHarness({ window: fakeWindow([0.2, 0.2]) })
+  const seen = []
+  const record = window.setPosition.bind(window)
+  window.setPosition = (x, y) => {
+    seen.push([x, y])
+    record(x, y)
+  }
+  ipc.emit(ORB_CHANNELS.dragStart, event, { x: 0, y: 0 })
+  ipc.emit(ORB_CHANNELS.dragMove, event, { x: -0.4, y: -0.4 })
+  assert.deepEqual(seen, [[0, 0]])
+  assert.equal(Object.is(seen[0][0], -0), false)
+  assert.equal(Object.is(seen[0][1], -0), false)
+})
+
 test('a wild pointer cannot throw in the main process', () => {
   const { ipc, window, event } = shellHarness()
   ipc.emit(ORB_CHANNELS.dragStart, event, { x: 0, y: 0 })

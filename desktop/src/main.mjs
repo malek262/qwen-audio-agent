@@ -59,6 +59,7 @@ import {
   desktopOrbBounds,
   desktopOrbSnapPosition,
   desktopSurfaceLayout,
+  windowAxis,
 } from './desktop-surface-layout.mjs'
 import { createOrbPlacement } from './orb-placement.mjs'
 import { bindOrbShell, configureOrbWindow } from './orb-shell.mjs'
@@ -737,7 +738,8 @@ const orbShell = bindOrbShell({
     if (desktopSurfaceMode === 'orb') {
       const [x, y] = mainWindow.getPosition()
       const workArea = screen.getDisplayMatching(mainWindow.getBounds()).workArea
-      const snapped = desktopOrbSnapPosition({ x, y }, workArea)
+      const rawSnapped = desktopOrbSnapPosition({ x, y }, workArea)
+      const snapped = { x: windowAxis(rawSnapped.x), y: windowAxis(rawSnapped.y) }
       if (snapped.x !== x || snapped.y !== y) {
         mainWindow.setPosition(snapped.x, snapped.y)
       }
@@ -785,10 +787,10 @@ function setDesktopSurfaceMode(requestedMode) {
     mainWindow.setSkipTaskbar(false)
     mainWindow.setHasShadow(true)
     mainWindow.setBounds({
-      x: panelBounds.x,
-      y: panelBounds.y,
-      width: panelBounds.width,
-      height: panelBounds.height,
+      x: windowAxis(panelBounds.x),
+      y: windowAxis(panelBounds.y),
+      width: windowAxis(panelBounds.width),
+      height: windowAxis(panelBounds.height),
     }, false)
     mainWindow.show()
     mainWindow.focus()

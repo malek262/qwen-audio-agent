@@ -14,6 +14,14 @@ const DESKTOP_TASK_PLACEMENT_HYSTERESIS = 48
 export const DESKTOP_ORB_VISUAL_SIZE = 92
 export const DESKTOP_ORB_VISUAL_PAD_X = Math.round((DESKTOP_ORB_WIDTH - DESKTOP_ORB_VISUAL_SIZE) / 2)
 export const DESKTOP_ORB_VISUAL_PAD_Y = Math.round((DESKTOP_ORB_HEIGHT - DESKTOP_ORB_VISUAL_SIZE) / 2)
+
+// Electron's V8 int conversion rejects -0 with an opaque "conversion failure"
+// TypeError, and Math.round(-0.2) yields exactly that while JSON logs it as
+// plain 0 — every coordinate handed to setPosition/setBounds goes through
+// this. (The || also defuses NaN from a destroyed-window read.)
+export function windowAxis(value) {
+  return Math.round(value) || 0
+}
 export const DESKTOP_ORB_SNAP_DISTANCE = 96
 export const DESKTOP_ORB_EDGE_MARGIN = 8
 
@@ -235,7 +243,7 @@ export function desktopSurfaceLayout({
     : orbBounds.y
 
   return {
-    bounds: { x, y, width: size.width, height: size.height },
+    bounds: { x: windowAxis(x), y: windowAxis(y), width: size.width, height: size.height },
     placement: nextPlacement,
     orbOffsetX: normalizedTaskCount(taskCount) > 0
       ? orbBounds.x - x

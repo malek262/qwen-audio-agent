@@ -32,6 +32,10 @@ function validPoint(point) {
   )
 }
 
+// Math.round(-0.2) is -0, which Electron's int conversion rejects — keep every
+// setPosition argument a plain positive zero or integer.
+const roundAxis = value => Math.round(value) || 0
+
 // Electron rejects positions outside the signed 32-bit range; a renderer must
 // not be able to throw in the main process by reporting a wild pointer.
 function validWindowPosition(x, y) {
@@ -107,8 +111,8 @@ export function bindOrbShell({
       || !dragState
       || !validPoint(point)
     ) return
-    const x = Math.round(dragState.windowX + point.x - dragState.pointerX)
-    const y = Math.round(dragState.windowY + point.y - dragState.pointerY)
+    const x = roundAxis(dragState.windowX + point.x - dragState.pointerX)
+    const y = roundAxis(dragState.windowY + point.y - dragState.pointerY)
     if (!validWindowPosition(x, y)) {
       logger?.warn('desktop.drag_position_invalid', { x, y })
       dragState = null
