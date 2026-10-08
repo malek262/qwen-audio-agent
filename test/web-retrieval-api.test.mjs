@@ -40,7 +40,7 @@ test('public retrieval uses existing normalization and cancellation contracts', 
   const result = await runtime.search('latest releases', { limit: 99, signal: controller.signal })
   assert.equal(result.citations[0].url, 'https://example.com/news')
   assert.equal(result.citations[0].published_at, '2026-09-11')
-  assert.match(result.notice, /不可信/)
+  assert.match(result.notice, /untrusted/)
   controller.abort()
   assert.equal(providerSignal.aborted, true)
 })
