@@ -302,6 +302,14 @@ export const config = {
   // Optional per-session agent language override (e.g. "ar"); the agent must
   // allowlist agent.language overrides, which the setup script configures.
   elevenlabsLanguage: String(process.env.ELEVENLABS_AGENT_LANGUAGE || '').trim(),
+  // Per-conversation prompt override: the Gateway assembles the full prompt
+  // (master contract + persona + operational instructions + live memory and
+  // runtime context) and sends it in the initiation handshake, like the
+  // self-hosted providers do. The hosted agent's dashboard prompt remains as
+  // fallback; the agent must allowlist agent.prompt.prompt (setup script does).
+  elevenlabsPromptOverride: String(
+    process.env.QWEN_AUDIO_ELEVENLABS_PROMPT_OVERRIDE || 'on',
+  ).toLowerCase() !== 'off',
   webSearchProvider: webSearch.provider,
   webSearchMcpUrl: webSearch.mcpUrl,
   webSearchMcpToken: webSearch.mcpToken,

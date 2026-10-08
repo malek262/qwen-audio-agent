@@ -265,7 +265,12 @@ export function createElevenLabsProtocol() {
 
     connectionMessages: ({ session }) => {
       const override = {}
-      if (session?.language) override.agent = { language: session.language }
+      const agent = {}
+      if (session?.language) agent.language = session.language
+      // Full-prompt override; requires the agent's Security allowlist entry
+      // agent.prompt.prompt (installed by the setup script).
+      if (session?.prompt) agent.prompt = { prompt: session.prompt }
+      if (Object.keys(agent).length) override.agent = agent
       if (session?.voice) override.tts = { voice_id: session.voice }
       return [{
         type: 'conversation_initiation_client_data',

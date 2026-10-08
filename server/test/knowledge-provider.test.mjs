@@ -175,5 +175,5 @@ test('bounds, deduplicates, and normalizes provider results and citations', () =
   assert.equal(normalized.citations.length, 1)
   assert.equal(normalized.results[1].source, undefined)
   assert.equal(normalized.results[1].citation_id, undefined)
-  assert.match(normalized.notice, /不可信/)
+  assert.match(normalized.notice, /untrusted/)
 })

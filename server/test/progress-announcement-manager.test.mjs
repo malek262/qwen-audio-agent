@@ -105,7 +105,7 @@ test('coalesces Agent message chunks and first speaks after one minute', async (
   })
   assert.match(
     testHarness.calls[0][3].instructions,
-    /阶段性更新，不是最终结果/,
+    /phase update from previously submitted work, not the final result/,
   )
   testHarness.manager.close()
 })

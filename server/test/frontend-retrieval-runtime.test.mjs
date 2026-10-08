@@ -59,7 +59,7 @@ test('normalizes provider search results into bounded citations', async () => {
   assert.equal(searches[0].query, 'latest example')
   assert.equal(searches[0].options.limit, 8)
   assert.equal(result.summary, 'Provider summary with sources.')
-  assert.match(result.notice, /不可信资料/)
+  assert.match(result.notice, /untrusted material/)
   assert.deepEqual(result.results, [{
     title: 'Example result',
     url: 'https://example.com/page',
@@ -154,7 +154,7 @@ test('fetches bounded public-page text and returns a citation', async () => {
     assert.match(result.content, /Useful body/)
     assert.doesNotMatch(result.content, /ignoreThis/)
     assert.equal(result.citations[0].url, result.url)
-    assert.match(result.notice, /不可信资料/)
+    assert.match(result.notice, /untrusted material/)
   } finally {
     await close(server)
   }

@@ -7,27 +7,27 @@ const scheduleReminderTool = {
   type: 'function',
   function: {
     name: SCHEDULE_REMINDER_TOOL_NAME,
-    description: '创建未来触发的提醒或后台任务，不用于仅记录清单条目。先调用 get_current_time 确定当前时间，再计算触发时间。',
+    description: 'Create a reminder or background task that triggers in the future; not for merely recording list entries. Call get_current_time first to determine the current time, then compute the trigger time.',
     parameters: {
       type: 'object',
       properties: {
         execute_at: {
           type: 'string',
-          description: '基于用户本地时区计算的触发时间，使用包含时区偏移的 ISO 8601 时间戳。',
+          description: 'The trigger time computed from the user\'s local time zone, as an ISO 8601 timestamp including the time zone offset.',
         },
         reminder: {
           type: 'string',
-          description: '提醒内容或任务描述。忠实保留用户要提醒或执行的事项。',
+          description: 'The reminder content or task description. Faithfully preserve what the user wants to be reminded of or have executed.',
         },
         type: {
           type: 'string',
           enum: ['reminder', 'task'],
-          description: 'reminder=到点播报内容（默认）；task=到点由后台 Agent 执行后播报结果，需要已配置后台。用户只要求提醒用 reminder；要求执行某事再告知用 task。',
+          description: 'reminder=announce the content at the due time (default); task=the backend Agent executes at the due time and announces the result, requires a configured backend. Use reminder when the user only asks to be reminded; use task when they want something executed and then reported.',
         },
         recurrence: {
           type: 'string',
           enum: ['once', 'daily', 'weekly', 'weekdays'],
-          description: '重复模式，默认 once；daily=每天，weekly=每周，weekdays=每周一至周五。重复提醒按客户端时区保留本地时间。',
+          description: 'Recurrence pattern, default once; daily=every day, weekly=every week, weekdays=Monday through Friday. Recurring reminders keep the local time in the client time zone.',
         },
       },
       required: ['execute_at', 'reminder'],
@@ -44,7 +44,7 @@ const reminderOnlyTool = {
   ...scheduleReminderTool,
   function: {
     ...scheduleReminderTool.function,
-    description: '创建未来触发的提醒，不执行后台任务。先调用 get_current_time 确定当前时间，再计算触发时间。',
+    description: 'Create a reminder that triggers in the future; does not execute background work. Call get_current_time first to determine the current time, then compute the trigger time.',
     parameters: {
       ...scheduleReminderTool.function.parameters,
       properties: {
@@ -52,7 +52,7 @@ const reminderOnlyTool = {
         type: {
           type: 'string',
           enum: ['reminder'],
-          description: '到点播报提醒内容（默认），不执行后台任务。',
+          description: 'Announce the reminder content at the due time (default); does not execute background work.',
         },
       },
     },

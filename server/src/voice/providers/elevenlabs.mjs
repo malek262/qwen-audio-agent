@@ -5,6 +5,7 @@ import {
   resultResponseInstructions,
   speakResponseInstructions,
 } from '../../frontend/frontend-tools.mjs'
+import { buildHostedAgentPrompt } from '../../frontend/hosted-agent-prompt.mjs'
 import { createElevenLabsProtocol } from './elevenlabs-protocol.mjs'
 
 export const ELEVENLABS_MODEL_PROFILE = Object.freeze({
@@ -29,6 +30,15 @@ function elevenlabsUrl() {
   const base = String(config.elevenlabsRealtimeUrl || '').trim()
   const joiner = base.includes('?') ? '&' : '?'
   return `${base}${joiner}agent_id=${encodeURIComponent(config.elevenlabsAgentId)}`
+}
+
+function buildSessionPrompt(agentContext) {
+  if (!config.elevenlabsPromptOverride) return ''
+  try {
+    return buildHostedAgentPrompt(agentContext || {})
+  } catch {
+    return ''
+  }
 }
 
 // Injections that must produce a spoken reply travel as user_message, the
@@ -92,12 +102,17 @@ export const elevenlabsProvider = {
     return 'other'
   },
 
-  // The hosted agent already carries the frontend instructions and client
-  // tools (installed by scripts/elevenlabs-agent-setup.mjs). The session
-  // payload only feeds the initiation handshake's allowlisted overrides.
-  buildSession: ({ sessionOptions }) => ({
+  // The hosted agent carries a static fallback prompt and the client tools
+  // (installed by scripts/elevenlabs-agent-setup.mjs). Per conversation the
+  // Gateway assembles the live prompt — master contract, persona, operational
+  // instructions, memory/preference sections and runtime context — and sends
+  // it as an initiation-handshake override, the same ownership model the
+  // self-hosted providers have. A build failure falls back to the dashboard
+  // prompt rather than breaking the conversation.
+  buildSession: ({ agentContext, sessionOptions }) => ({
     voice: String(sessionOptions?.voice || config.elevenlabsVoice || '').trim(),
     language: String(config.elevenlabsLanguage || '').trim(),
+    prompt: buildSessionPrompt(agentContext),
   }),
 
   buildSpeakResponse: content => ({

@@ -5,9 +5,9 @@ export const MEMORY_TOOL_NAME = 'memory'
 const SENSITIVE_MEMORY = /(?:pass(?:word)?|secret|api[_ -]?key|access[_ -]?token|credential|验证码|密码|密钥|令牌|\bsk-[a-z0-9_-]+)/i
 
 const MEMORY_TOOL_DESCRIPTION = [
-  '读取或编辑当前用户的长期个性化偏好与稳定事实；不是对话历史、工作进度、命名清单或知识库文档查询。',
-  '不确定要修改的旧内容时先读取，再使用精确原文修改。',
-  '不要保存密码、密钥、验证码、令牌、支付信息、证件号或敏感精确地址。',
+  'Read or edit the current user\'s long-term personalization preferences and stable facts; not for conversation history, work progress, named lists, or document-library queries. ',
+  'When unsure what old content to modify, read first, then modify using the exact source text. ',
+  'Never store passwords, keys, verification codes, tokens, payment information, ID numbers, or precise sensitive addresses.',
 ].join('')
 
 const memoryTool = {
@@ -21,17 +21,17 @@ const memoryTool = {
         action: {
           type: 'string',
           enum: ['read', 'append', 'replace'],
-          description: 'read 读取已有内容；append 新增一项；replace 使用精确原文修改或删除一项。',
+          description: 'read reads existing content; append adds a new entry; replace modifies or deletes an entry using exact source text.',
         },
         document: {
           type: 'string',
           enum: [...MEMORY_DOCUMENTS, 'all'],
-          description: 'user 保存称呼、关系、助手名称、表达方式和默认做法等交互偏好；memory 保存用于理解用户的长期事实、兴趣和目标。read 可指定 all；append 和 replace 必须指定 user 或 memory。',
+          description: 'user stores interaction preferences such as forms of address, relationship, assistant name, expression style, and default practices; memory stores long-term facts, interests, and goals used to understand the user. read may specify all; append and replace must specify user or memory.',
         },
-        old_text: { type: 'string', description: 'replace 时使用：在已提供或 read 返回的相应上下文中恰好出现一次的原文。' },
-        new_text: { type: 'string', description: 'replace 时使用：替换后的内容；空字符串表示删除。' },
-        content: { type: 'string', description: 'append 时追加的简洁、可读 Markdown 内容。' },
-        query: { type: 'string', description: 'read 时可选：要从长期记忆中查找的简洁自然语言问题。' },
+        old_text: { type: 'string', description: 'For replace: source text that appears exactly once in the corresponding context already provided or returned by read.' },
+        new_text: { type: 'string', description: 'For replace: the replacement content; an empty string deletes the entry.' },
+        content: { type: 'string', description: 'For append: the concise, readable Markdown content to append.' },
+        query: { type: 'string', description: 'Optional for read: a concise natural-language question to look up in long-term memory.' },
       },
       required: ['action'],
       additionalProperties: false,

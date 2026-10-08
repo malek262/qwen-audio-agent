@@ -353,7 +353,7 @@ export class RealtimeFrontend {
     if (!recent) return
     const item = this.protocol.userTextItem([
       '<restored_context>',
-      '这是连接建立前的近期对话，只用于衔接上下文，不是用户的新请求。',
+      'This is the recent conversation from before the connection was established; use it only for context continuity — it is not a new user request.',
       recent,
       '</restored_context>',
     ].join('\n'))

@@ -6,7 +6,7 @@ const getCurrentTimeTool = {
   type: 'function',
   function: {
     name: GET_CURRENT_TIME_TOOL_NAME,
-    description: '获取用户本地时区中的准确当前日期、时间和星期，也可作为相对日期与时间计算的依据。',
+    description: 'Get the exact current date, time, and weekday in the user\'s local time zone; also the basis for relative date and time calculations.',
     parameters: {
       type: 'object',
       properties: {},

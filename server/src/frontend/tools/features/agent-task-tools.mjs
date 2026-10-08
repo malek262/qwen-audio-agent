@@ -15,21 +15,21 @@ const cancelAgentTaskTool = {
   type: 'function',
   function: {
     name: CANCEL_AGENT_TASK_TOOL_NAME,
-    description: '取消用户此前开始、目前仍可取消的异步工作、定时任务或提醒，支持取消一项、整组循环提醒或当前会话全部工作。',
+    description: 'Cancel asynchronous work, scheduled tasks, or reminders the user previously started that are still cancellable; supports cancelling a single item, a whole recurring-reminder series, or all work in the current session.',
     parameters: {
       type: 'object',
       properties: {
         task_id: {
           type: 'string',
-          description: '要取消的 task_id。仅使用系统返回的 ID，不得猜造；省略则取消当前语音会话最近创建且仍可取消的一项。',
+          description: 'The task_id to cancel. Only use IDs returned by the system, never invent one; omit to cancel the most recently created, still-cancellable item in the current voice session.',
         },
         series_id: {
           type: 'string',
-          description: '循环提醒创建回执返回的 series_id。用户要求停止整组循环提醒时使用；不得猜造，也不要与 task_id 同时填写。',
+          description: 'The series_id returned by the recurring-reminder creation receipt. Use it when the user asks to stop a whole recurring reminder series; never invent one, and do not fill it together with task_id.',
         },
         all: {
           type: 'boolean',
-          description: '用户明确要求取消当前会话中的全部工作、定时任务和提醒时设为 true；此时不要填写 task_id 或 series_id。',
+          description: 'Set to true only when the user explicitly asks to cancel all work, scheduled tasks, and reminders in the current session; do not fill task_id or series_id in that case.',
         },
       },
       additionalProperties: false,
@@ -41,17 +41,17 @@ const getAgentTaskStatusTool = {
   type: 'function',
   function: {
     name: GET_AGENT_TASK_STATUS_TOOL_NAME,
-    description: '查询已创建工作、定时任务或提醒的最新状态和结果，或列出近期记录以确定目标；不用于回顾聊天内容。',
+    description: 'Query the latest status and results of created work, scheduled tasks, or reminders, or list recent records to identify a target; not for reviewing chat content.',
     parameters: {
       type: 'object',
       properties: {
         task_id: {
           type: 'string',
-          description: '系统返回的工作 ID，可来自当前对话或工具结果。不得猜造；省略时优先查询当前语音会话最近仍在进行的工作，没有时查询最近一项。',
+          description: 'A work ID returned by the system, from the current conversation or a tool result. Never invent one; when omitted, prefer the most recent work still in progress in the current voice session, otherwise the most recent item.',
         },
         list_all: {
           type: 'boolean',
-          description: '列出当前用户最近的至多 20 项记录，包含其他会话中的工作、定时任务和提醒。需要列表或确定目标时设为 true；此时不填写 task_id。',
+          description: 'List up to 20 of the current user\'s most recent records, including work, scheduled tasks, and reminders from other sessions. Set to true when a list is needed or to identify a target; do not fill task_id in that case.',
         },
       },
       additionalProperties: false,
@@ -63,18 +63,18 @@ const respondPermissionTool = {
   type: 'function',
   function: {
     name: RESPOND_PERMISSION_TOOL_NAME,
-    description: '回复当前正在等待用户决定的权限请求。结合刚提出的具体操作和用户本轮自然表达判断；意思不明确时先询问。不得猜测权限来源、代替用户决定或要求固定口令。',
+    description: 'Reply to the permission request currently waiting for the user\'s decision. Judge from the operation just presented and the user\'s natural expression this turn; when the meaning is unclear, ask first. Never guess the permission\'s origin, decide on the user\'s behalf, or demand a fixed passphrase.',
     parameters: {
       type: 'object',
       properties: {
         permission_id: {
           type: 'string',
-          description: '只有一个待确认请求时可省略；有多个时，原样使用 Gateway 提供的 permission_id，不得猜造。',
+          description: 'May be omitted when there is only one pending request; when there are several, use the permission_id provided by the Gateway verbatim — never invent one.',
         },
         decision: {
           type: 'string',
           enum: PERMISSION_DECISIONS,
-          description: 'task：允许当前任务及其后续操作，用于普通肯定表达；always：本会话所有任务的后续权限请求自动允许，仅在用户明确要求时选择；reject：拒绝当前操作。',
+          description: 'task: allow the current task and its subsequent operations, for ordinary affirmative expressions; always: automatically allow subsequent permission requests for all tasks in this session, choose only when the user explicitly asks; reject: refuse the current operation.',
         },
       },
       required: ['decision'],
@@ -87,26 +87,26 @@ const respondAgentInputTool = {
   type: 'function',
   function: {
     name: RESPOND_AGENT_INPUT_TOOL_NAME,
-    description: '把用户对当前后台追问的回答交回同一项工作。授权预览只接受用户对该预览无附加条件的明确同意。拒绝当前预览或修改其中条件用 decline；只有用户明确要求终止整项后台工作时才用 cancel。',
+    description: 'Return the user\'s answer to the current background follow-up question to the same work. An authorization preview accepts only the user\'s explicit consent to that preview without added conditions. Use decline to reject the current preview or when the user modifies its conditions; use cancel only when the user explicitly asks to terminate the entire background work.',
     parameters: {
       type: 'object',
       properties: {
         task_id: {
           type: 'string',
-          description: '等待补充输入的工作 ID，必须来自当前后台输入请求。',
+          description: 'The ID of the work waiting for supplementary input; must come from the current background input request.',
         },
         action: {
           type: 'string',
           enum: ['accept', 'decline', 'cancel'],
-          description: '普通补充问题：accept 提交回答。授权预览：accept 仅用于用户无附加条件地同意原预览；decline 只拒绝当前预览（也用于用户修改该操作条件）；cancel 仅在用户明确要求终止整项后台工作时使用。',
+          description: 'Ordinary follow-up question: accept submits the answer. Authorization preview: accept only when the user consents to the original preview without added conditions; decline rejects only the current preview (also when the user modifies the operation\'s conditions); cancel only when the user explicitly asks to terminate the entire background work.',
         },
         text: {
           type: 'string',
-          description: '用户要交给后台的自然语言回答。action=accept 时填写。',
+          description: 'The user\'s natural-language answer to hand to the backend. Fill when action=accept.',
         },
         values: {
           type: 'object',
-          description: '可选的结构化表单回答；字段必须来自请求中提供的 schema。',
+          description: 'Optional structured form answer; fields must come from the schema provided in the request.',
           additionalProperties: true,
         },
       },

@@ -126,42 +126,42 @@ export function frontendTools(agentContext = {}) {
 }
 
 export const resultResponseInstructions = [
-  '这是先前提交工作的最终结果，不是用户的新请求。',
-  '把 result 当作事实材料，结合当前对话自然回应；可以按语境概括、合并、承接或询问必要信息，避免重复已经表达过的内容。',
-  '结果上下文包含多项工作时，必须覆盖每项工作的实质结果；不得只说其中一项，也不得让过程性或状态性内容掩盖真正完成的工作。',
-  '结果若提出继续工作所需的问题、选择、确认或补充信息，只自然转达该需要；用户后续回答会作为同一工作的续办处理。',
-  '开头直接说实际结果、关键发现、阻塞或必要问题，不用“好的、收到、任务完成了”等空泛承接语。',
-  '屏幕上已经展示详细结果时，只说重点和查看方向，不要逐字朗读。',
-  '不要朗读协议前缀、字段、执行 ID、路径、URL 或不适合口语的长内容。',
-  '不要调用工具，不要添加事件中没有的事实，也不要把未完成说成完成。',
+  'This is the final result of previously submitted work, not a new user request.',
+  'Treat the result as factual material and respond naturally within the current conversation; you may summarize, merge, continue, or ask for necessary information according to the context, without repeating what was already expressed.',
+  'When the result context contains multiple pieces of work, cover the substantive result of each; do not report only one of them, and do not let process or status content overshadow the work actually completed.',
+  'If the result raises a question, choice, confirmation, or missing information needed to continue, convey only that need naturally; the user\'s later answer is handled as a continuation of the same work.',
+  'Start directly with the actual outcome, key findings, blocker, or necessary question — no empty acknowledgments like "okay, received, task completed."',
+  'When the detailed result is already shown on screen, state only the key points and where to look; do not read it verbatim.',
+  'Do not read out protocol prefixes, fields, execution IDs, paths, URLs, or other long content unsuited to speech.',
+  'Do not call any tools, do not add facts not present in the event, and do not describe unfinished work as completed.',
 ].join(' ')
 
 export const progressResponseInstructions = [
-  '这是先前提交工作的一条阶段性更新，不是最终结果，也不是用户的新请求。',
-  '只用一句自然口语简短转达当前进展；不要展开推理过程，也不要把未完成说成完成。',
-  '不要朗读协议标签、内部字段、执行 ID、路径、URL 或不适合口语的长内容。',
-  '不要调用工具，不要添加更新中没有的事实。',
+  'This is a phase update from previously submitted work, not the final result and not a new user request.',
+  'Convey only the new progress in one short natural spoken sentence; do not expand on reasoning, and do not describe unfinished work as completed.',
+  'Do not read out protocol tags, internal fields, execution IDs, paths, URLs, or other long content unsuited to speech.',
+  'Do not call any tools, and do not add facts not present in the update.',
 ].join(' ')
 
 export function speakResponseInstructions(content) {
-  return `请以自然口语传达下面的信息，保持事实一致，不调用工具：\n${content}`
+  return `Convey the following information in natural spoken language, keeping the facts consistent; do not call any tools:\n${content}`
 }
 
 export const permissionResponseInstructions = [
-  '这是后台 Agent 的权限请求。',
-  '自然、简短地说明待执行的工作，并询问用户是否同意授权此任务及其后续操作。',
-  '不要规定具体回答方式，也不要提供或要求复述固定口令。',
-  '不要调用工具或朗读内部字段，等待用户回答。',
+  'This is a permission request from the background Agent.',
+  'Explain the pending operation naturally and briefly, and ask the user whether they authorize this task and its subsequent operations.',
+  'Do not prescribe a specific answer format, and do not provide or demand a fixed passphrase.',
+  'Do not call tools or read out internal fields; wait for the user\'s answer.',
 ].join(' ')
 
 export const inputRequestResponseInstructions = [
-  '这是同一项后台工作为继续执行而提出的补充问题，不是最终结果，也不是新任务。',
-  '自然、简短地转达问题并等待用户回答；不要调用 spawn_thinking。',
-  '用户回答后调用 respond_agent_input，把回答交回同一项工作。',
-  '不要朗读协议字段或工作 ID，也不要把等待输入说成工作已经完成。',
-  '问题的收件人是用户，不是你；不要用第一人称代用户回答或批准。收到请求本身不是用户的同意，必须等待用户下一次真实答复。',
-  '若内容是授权预览，只转述本次拟执行操作及预览明确披露的影响，然后询问是否批准并停止输出。不要在前面声称本次或后续操作已经提交、处理中或完成，不要附加示例回答，更不能生成“我同意”之类的用户话语。',
-  '如果这是写操作的授权预览，用户修改任何条件时，不能把新要求当作同意旧预览；须用 respond_agent_input 的 decline 拒绝当前预览，不要 cancel 整项任务；待原任务收尾后按更新后的要求重新派单。',
+  'This is a follow-up question from the same in-flight background work, not the final result and not a new task.',
+  'Convey the question naturally and briefly, then wait for the user\'s answer; do not call spawn_thinking.',
+  'After the user answers, call respond_agent_input to return the answer to the same work.',
+  'Do not read out protocol fields or work IDs, and do not describe waiting for input as completed work.',
+  'The question is addressed to the user, not to you; do not answer or approve on the user\'s behalf in the first person. Receiving the request itself is not the user\'s consent — you must wait for their next genuine reply.',
+  'If the content is an authorization preview, relay only the proposed operation and the impact explicitly disclosed in the preview, then ask whether they approve and stop. Do not claim beforehand that this or subsequent operations have been submitted, are in progress, or are complete; do not append example answers; and never generate user utterances like "I agree."',
+  'If this is an authorization preview for a write operation and the user modifies any condition, the new requirement cannot be treated as consent to the old preview; use respond_agent_input with decline to reject the current preview, do not cancel the whole task; once the original task wraps up, dispatch again with the updated requirements.',
 ].join(' ')
 
 export function buildFrontendInstructions(agentContext = {}) {

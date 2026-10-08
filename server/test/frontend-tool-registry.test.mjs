@@ -113,12 +113,12 @@ test('permission field semantics live in schema rather than fixed policy', () =>
   const prompt = loadFrontendPrompt()
   const tool = frontendToolRegistry.get('respond_permission').definition.function
   assert.doesNotMatch(prompt, /`permission_id`|`series_id`|`input_refs`|spawn_thinking\.objective/)
-  assert.match(tool.parameters.properties.permission_id.description, /原样使用 Gateway.*不得猜造/)
+  assert.match(tool.parameters.properties.permission_id.description, /provided by the Gateway verbatim[\s\S]*never invent/)
   assert.equal(tool.parameters.properties.task_id, undefined)
   assert.deepEqual(tool.parameters.required, ['decision'])
-  assert.match(tool.parameters.properties.permission_id.description, /只有一个待确认请求时可省略/)
+  assert.match(tool.parameters.properties.permission_id.description, /May be omitted when there is only one pending request/)
   assert.match(tool.parameters.properties.decision.description, /task.*always.*reject/)
-  assert.match(tool.description, /自然表达判断.*不得.*代替用户决定或要求固定口令/)
+  assert.match(tool.description, /natural expression this turn[\s\S]*Never guess the permission's origin[\s\S]*demand a fixed passphrase/)
 })
 
 test('registers every default frontend tool once in stable order', () => {
@@ -280,8 +280,8 @@ test('availability projection combines configured features and pending requests'
 test('status query exposes only parameters the Gateway actually consumes', () => {
   const tool = frontendToolRegistry.get('get_agent_task_status').definition.function
   assert.deepEqual(Object.keys(tool.parameters.properties), ['task_id', 'list_all'])
-  assert.match(tool.parameters.properties.task_id.description, /当前对话或工具结果/)
-  assert.match(tool.parameters.properties.list_all.description, /20[\s\S]*其他会话/)
+  assert.match(tool.parameters.properties.task_id.description, /current conversation or a tool result/)
+  assert.match(tool.parameters.properties.list_all.description, /20[\s\S]*other sessions/)
 })
 
 test('disabled tools cannot execute or consume the tool-loop budget', async () => {

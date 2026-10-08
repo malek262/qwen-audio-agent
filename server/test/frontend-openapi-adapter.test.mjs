@@ -164,7 +164,7 @@ test('executes path, query, headers, and JSON bodies through one adapter', async
   assert.equal(requests[1].init.body, JSON.stringify({ city: '杭州', threshold: 35 }))
   assert.equal(weather.structured_content.request, 1)
   assert.equal(alert.http_status, 201)
-  assert.match(weather.notice, /不可信数据/)
+  assert.match(weather.notice, /untrusted data/)
 })
 
 test('fails one API closed when an enabled operation is missing', async t => {

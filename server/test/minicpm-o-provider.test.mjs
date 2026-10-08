@@ -234,7 +234,7 @@ test('connects to an official-protocol MiniCPM-o mock service', async t => {
   await frontend.connect()
   assert.equal(frontend.ready, true)
   assert.equal(received[0].type, 'session.init')
-  assert.match(received[0].payload.system_prompt, /语音/)
+  assert.match(received[0].payload.system_prompt, /full-duplex voice interaction/)
 
   const tenthSecond = pcm16Base64(new Array(1600).fill(0))
   for (let index = 0; index < 10; index += 1) {

@@ -31,34 +31,36 @@
 // Re-run after upgrading this repository to refresh the tool definitions and
 // instructions on the agent. The API key is never printed or persisted.
 
-import { existsSync, readFileSync } from 'node:fs'
-import { homedir } from 'node:os'
-import { resolve } from 'node:path'
+import { frontendTools } from '../server/src/frontend/frontend-tools.mjs'
 import {
-  buildFrontendInstructions,
-  frontendTools,
-} from '../server/src/frontend/frontend-tools.mjs'
+  buildHostedAgentPrompt,
+  defaultHostedPersonaFile,
+  HOSTED_AGENT_MASTER_PROMPT,
+} from '../server/src/frontend/hosted-agent-prompt.mjs'
 
 const MANAGED_BY = 'qwen-audio-agent'
 
-// The operational instructions this repository generates are written in its
-// source language (Chinese). The hosted agent must still behave as an
-// Arabic-first assistant, so the master prompt frames the language contract
-// explicitly and quarantines the operational text behind it.
-const MASTER_PROMPT = `You are the voice frontend of qwen-audio-agent: a realtime voice assistant connected to the user's local Gateway, which can delegate real work to a backend coding agent and manage tasks, reminders and notes.
+// The hosted agent must accept per-conversation overrides for every field the
+// Gateway sends in the initiation handshake: language, voice, and the full
+// assembled prompt (live memory/preferences/runtime context).
+const OVERRIDE_ALLOWLIST = {
+  agent: { language: true, first_message: true, prompt: { prompt: true } },
+  tts: { voice_id: true },
+}
 
-Language contract (highest priority):
-- Always speak in the user's language. The default conversation language is Arabic: reply in a warm, natural Jordanian dialect of Arabic unless the user clearly switches to another language.
-- Large parts of your operational instructions below are written in Chinese. Follow them with precision — they govern tools, task flow and safety — but NEVER let them change your reply language or style.
-- Keep spoken replies short and conversational. Do not re-ask "how can I help you" after every turn; during user silence or an unintelligible/noise turn, stay quiet or acknowledge at most once, briefly.
-- If a user turn is empty, only punctuation (like "..."), or unintelligible background noise, treat it as accidental: call the skip_turn tool to stay silent — never offer help or ask questions because of noise.
-- When the user dismisses you ("لا أريد شيئاً", "روحي", "نامي", "مع السلامة", "go to sleep", goodbye): reply with one short goodbye and IMMEDIATELY call the enter_sleep client tool to go to sleep. While asleep you stay silent and never reply to noise; the user wakes you again with the wake word.
-
-Capability contract:
-- You CAN act on the user's machine through your client tools. To create files, run commands, search, write code or do any multi-step work, call spawn_thinking. Never claim you lack the ability to do something the tools can do.
-- CRITICAL: when the user asks you to DO something, call the tool IMMEDIATELY in the same turn. Never just say you will do it — a spoken promise without a tool call is a failed turn. Confirm briefly only AFTER the tool call.
-- After delegating, confirm once in one short sentence, then wait. Do not call the same tool again for the same request; results arrive automatically and you announce them out loud.
-- Permission requests from the backend arrive as system context; ask the user once, briefly, and wait for their decision.`
+// Install the superset of frontend tools. The Gateway re-checks capabilities
+// on every call and answers with a clean "unavailable" when a feature is off,
+// so installing capability-gated tools here is safe — it lets features like
+// memory, recall and web search light up as soon as the Gateway config
+// provides them, without re-running this script.
+const SETUP_TOOL_CAPABILITIES = [
+  'memory',                // voicemem provider is configured by default
+  'recall',                // session digests
+  'web-search',            // needs QWEN_AUDIO_WEB_SEARCH_PROVIDER at runtime
+  'url-fetch',             // always available at runtime
+  'permission.respond',    // PERMISSION_RESPONSE_CAPABILITY
+  'backend.input.respond', // BACKEND_INPUT_RESPONSE_CAPABILITY
+]
 
 function parseArgs(argv) {
   const options = { language: 'ar', promptMode: 'merge', reasoning: 'low' }
@@ -130,7 +132,9 @@ const SYSTEM_TOOLS = [{
 }]
 
 function clientToolConfigs() {
-  const gatewayTools = frontendTools({}).map(tool => ({
+  const gatewayTools = frontendTools({
+    frontend: { capabilities: SETUP_TOOL_CAPABILITIES },
+  }).map(tool => ({
     type: 'client',
     name: tool.function.name,
     description: String(tool.function.description || '').slice(0, 1000),
@@ -161,7 +165,7 @@ function mergePrompt(existingPrompt, instructions) {
   if (!existing || existing === instructions) return instructions
   // A prompt we previously installed is fully refreshed on every run — this is
   // what keeps tool instructions current after a repository upgrade.
-  if (existing.startsWith(MASTER_PROMPT.slice(0, 80))) return instructions
+  if (existing.startsWith(HOSTED_AGENT_MASTER_PROMPT.slice(0, 80))) return instructions
   if (existing.includes(instructions.slice(0, 200))) return existing
   return `${instructions}\n\n---\n\n# Additional persona instructions (pre-existing agent prompt)\n\n${existing}`
 }
@@ -187,28 +191,18 @@ async function api(baseUrl, apiKey, method, path, body) {
 }
 
 function defaultPromptFile() {
-  return resolve(
-    process.env.QWAUDIO_CONFIG_DIR || resolve(homedir(), '.config', 'qwaudio'),
-    'elevenlabs-agent-prompt.md',
-  )
+  return defaultHostedPersonaFile()
 }
 
-// Full prompt = master contract (English, language/capability rules) + optional
-// user persona file + the repository's operational instructions (Chinese).
+// Full prompt = master contract + optional user persona file + the
+// repository's operational instructions. The same assembly runs per
+// conversation on the Gateway (with live memory/runtime context) via the
+// prompt override; this static copy is the agent's dashboard fallback.
 function buildAgentPrompt(options) {
-  const sections = [MASTER_PROMPT]
   const promptFile = String(
     options.promptFile || process.env.ELEVENLABS_AGENT_PROMPT_FILE || '',
   ).trim() || defaultPromptFile()
-  if (existsSync(promptFile)) {
-    const persona = readFileSync(promptFile, 'utf8').trim()
-    if (persona) sections.push(`# User persona and house rules\n\n${persona}`)
-  }
-  sections.push(
-    '# Operational instructions (source language: Chinese; follow precisely, never change your reply language)\n\n'
-    + buildFrontendInstructions({}),
-  )
-  return sections.join('\n\n---\n\n')
+  return buildHostedAgentPrompt({}, { personaFile: promptFile })
 }
 
 async function main() {
@@ -284,10 +278,7 @@ async function main() {
     ...(existing?.platform_settings || {}),
     overrides: {
       ...(existing?.platform_settings?.overrides || {}),
-      conversation_config_override: {
-        agent: { language: true, first_message: true },
-        tts: { voice_id: true },
-      },
+      conversation_config_override: OVERRIDE_ALLOWLIST,
     },
   }
 

@@ -195,10 +195,10 @@ test('the tool description separates summaries from task details and other sourc
   // 「最多一层」的边界必须写在 description 里，否则模型会拿这几行当全部事实
   assert.match(tool.function.description, /get_agent_task_status/)
   // 说明数据边界，但不假定另一个可选工具已启用。
-  assert.match(tool.function.description, /不检索资料文档/)
+  assert.match(tool.function.description, /does not search document libraries/)
   assert.doesNotMatch(tool.function.description, /\bknowledge\b/)
-  assert.match(tool.function.description, /不含原话和执行细节|不要编造/)
-  assert.match(tool.function.description, /个人长期事实与偏好应查询已提供的长期记忆能力/)
+  assert.match(tool.function.description, /does not contain verbatim transcripts or execution details|never fabricate/)
+  assert.match(tool.function.description, /dedicated personalization capability/)
   assert.doesNotMatch(tool.function.description, /\bmemory\b/)
 })
 
