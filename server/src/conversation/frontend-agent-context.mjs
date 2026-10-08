@@ -101,9 +101,9 @@ export function buildRecentConversationContext(messages = []) {
       clean(input.filename),
       clean(input.mime),
     ].filter(Boolean).join(' · ')).filter(Boolean).join('；')
-    const base = `${message.role === 'user' ? '用户' : '助手'}: ${content}`
+    const base = `${message.role === 'user' ? 'User' : 'Assistant'}: ${content}`
     const line = inputSummary
-      ? `${base}（可引用输入：${inputSummary}）`
+      ? `${base} (referenceable inputs: ${inputSummary})`
       : base
     if (selected.length && used + line.length > MAX_RECENT_CHARS) break
     selected.unshift(line)

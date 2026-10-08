@@ -65,8 +65,8 @@ test('builds bounded recent conversation separately from system instructions', (
   ])
 
   assert.match(recent, /<recent_conversation>/)
-  assert.match(recent, /用户: 继续刚才的项目/)
-  assert.match(recent, /助手: 正在继续处理/)
+  assert.match(recent, /User: 继续刚才的项目/)
+  assert.match(recent, /Assistant: 正在继续处理/)
 })
 
 test('describes prior input references without embedding their file data', () => {
@@ -82,7 +82,7 @@ test('describes prior input references without embedding their file data', () =>
     }],
   }])
 
-  assert.match(recent, /可引用输入：input_1 · \[Image 1\] · cat\.png · image\/png/)
+  assert.match(recent, /referenceable inputs: input_1 · \[Image 1\] · cat\.png · image\/png/)
   assert.doesNotMatch(recent, /data:image/)
 })
 

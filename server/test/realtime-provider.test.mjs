@@ -1209,7 +1209,7 @@ for (const [providerName, createFrontend] of [
     const originalHistory = [
       '<recent_conversation>',
       ...recentMessages.map(message => (
-        `${message.role === 'user' ? '用户' : '助手'}: ${message.content}`
+        `${message.role === 'user' ? 'User' : 'Assistant'}: ${message.content}`
       )),
       '</recent_conversation>',
     ].join('\n')
