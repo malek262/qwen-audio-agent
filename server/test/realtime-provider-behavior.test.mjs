@@ -281,11 +281,15 @@ for (const key of defaultRealtimeProviderRegistry.list().map(provider => provide
         await waitFor(() => peer.messages.some(message => message.type === 'pong' && message.event_id === 42))
       })
 
-      await t.test('interruptions never synthesize user speech state', async t => {
+      await t.test('interruptions after a gateway user_message never synthesize user speech state', async t => {
         // ElevenLabs also fires interruption when a gateway user_message
-        // pre-empts the agent. Treating it as user speech poisons
+        // pre-empts the agent. Treating that echo as user speech poisons
         // userSpeaking/announcementWindow and deadlocks result delivery.
-        const { peer, events, flush } = await connect(t, key)
+        // A genuine barge-in (no recent user_message) DOES synthesize
+        // speech_started — covered by elevenlabs-interruption.test.mjs.
+        const { frontend, peer, events, flush } = await connect(t, key)
+        await frontend.sendUserText('hello')
+        await flush()
         peer.send({ type: 'interruption', interruption_event: { event_id: 7 } })
         await flush()
         assert.equal(

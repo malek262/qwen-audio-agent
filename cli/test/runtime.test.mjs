@@ -121,6 +121,30 @@ test('compares an explicitly requested model with health profile identity', () =
   }, DEFAULT_FRONTEND_ENV))
 })
 
+test('hosted-agent providers match on the configured model, not the family profile id', () => {
+  // ElevenLabs reports realtimeModelProfile.id 'elevenlabs-agent' (a family
+  // constant) while the configured model is the agent id. Comparing against
+  // the profile id falsely rejects reusing a healthy gateway.
+  const env = {
+    QWEN_AUDIO_REALTIME_PROVIDER: 'elevenlabs',
+    ELEVENLABS_AGENT_ID: 'agent_123',
+    ELEVENLABS_API_KEY: 'el-key',
+  }
+  const frontend = resolveRealtimeFrontendConfiguration(env)
+  assert.doesNotThrow(() => assertRealtimeGatewayCompatibility({
+    realtimeProvider: 'elevenlabs',
+    realtimeConfigurationSignature: frontend.active.signature,
+    realtimeModel: 'agent_123',
+    realtimeModelProfile: { id: 'elevenlabs-agent' },
+  }, env))
+  assert.throws(() => assertRealtimeGatewayCompatibility({
+    realtimeProvider: 'elevenlabs',
+    realtimeConfigurationSignature: frontend.active.signature,
+    realtimeModel: 'agent_DIFFERENT',
+    realtimeModelProfile: { id: 'elevenlabs-agent' },
+  }, env), /Realtime 模型.*不一致/)
+})
+
 test('compares the selected provider through the provider-owned runtime model field', () => {
   const env = {
     QWEN_AUDIO_REALTIME_PROVIDER: 'stepfun',

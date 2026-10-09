@@ -80,7 +80,11 @@ export function desktopGatewayCompatibility(health, env = process.env) {
   const expectedRealtime = resolveRealtimeFrontendConfiguration(env)
   if (health?.realtimeModel || health?.realtimeModelProfile?.id) {
     const actualModel = String(
-      health.realtimeModelProfile?.id || health.realtimeModel,
+      // The configured model is the identity that matters; the profile id is
+      // a family constant shared by every model of the provider (e.g. the
+      // ElevenLabs profile id is 'elevenlabs-agent' while the configured
+      // model is the agent id) and must only fill in when no model is set.
+      health.realtimeModel || health.realtimeModelProfile?.id,
     ).trim()
     const expectedModel = expectedRealtime.active.model
     if (expectedModel && actualModel !== expectedModel) {

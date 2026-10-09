@@ -436,6 +436,12 @@ async function startConfiguredRuntime(settings = configuredOrigin().settings) {
 
 async function runtimeStatus(target = appOrigin) {
   const health = await readDesktopGatewayHealth(target)
+  // The model catalog lives in the persisted ACP registry, so the settings
+  // pickers stay populated while the Gateway is down or still starting.
+  let persistedModels = null
+  if (!health?.backend?.availableModels?.length) {
+    persistedModels = readPersistedBackendModels()
+  }
   return {
     gatewayConnected: Boolean(health),
     gatewayUrl: String(target || ''),
@@ -445,22 +451,44 @@ async function runtimeStatus(target = appOrigin) {
     realtimeModelProfile: health?.realtimeModelProfile || null,
     voiceConfigured: health?.voiceConfigured === true,
     realtimeConnection: health?.voiceClients?.realtime || null,
-    backend: health?.backend
+    backend: health?.backend || persistedModels
       ? {
-          protocol: health.backend.kind || health.backend.protocol || null,
-          label: health.backend.label || null,
-          baseUrl: health.backend.baseUrl || null,
-          model: health.backend.model || null,
-          currentModel: health.backend.currentModel || null,
-          availableModels: Array.isArray(health.backend.availableModels)
+          protocol: health?.backend?.kind || health?.backend?.protocol || null,
+          label: health?.backend?.label || null,
+          baseUrl: health?.backend?.baseUrl || null,
+          model: health?.backend?.model || null,
+          currentModel: health?.backend?.currentModel
+            || persistedModels?.current
+            || null,
+          availableModels: Array.isArray(health?.backend?.availableModels)
+            && health.backend.availableModels.length
             ? health.backend.availableModels
-            : [],
-          connected: health.backend.ok === true,
-          status: health.backend.status || null,
-          code: health.backend.code || null,
-          error: health.backend.error || null,
+            : (persistedModels?.available || []),
+          connected: health?.backend?.ok === true,
+          status: health?.backend?.status || null,
+          code: health?.backend?.code || null,
+          error: health?.backend?.error || null,
         }
       : null,
+  }
+}
+
+function readPersistedBackendModels() {
+  try {
+    const parsed = JSON.parse(readFileSync(
+      resolve(runtimeEnvironment.stateDirectory, 'acp-sessions.json'),
+      'utf8',
+    ))
+    const models = parsed?.backendModels
+    if (!models || typeof models !== 'object') return null
+    return {
+      current: typeof models.current === 'string' ? models.current : null,
+      available: Array.isArray(models.available)
+        ? models.available.filter(value => typeof value === 'string' && value)
+        : [],
+    }
+  } catch {
+    return null
   }
 }
 

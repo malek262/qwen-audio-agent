@@ -190,7 +190,11 @@ export function assertGatewayCompatibility(health, backend) {
 export function assertRealtimeGatewayCompatibility(health, env = process.env) {
   const expected = resolveRealtimeFrontendConfiguration(env)
   const requestedModel = String(expected.active.model || '').trim()
-  const actualModel = String(health?.realtimeModelProfile?.id || health?.realtimeModel || '').trim()
+  // The configured model is the identity that matters; the profile id is a
+  // family constant shared by every model of the provider (e.g. ElevenLabs
+  // reports profile 'elevenlabs-agent' while the configured model is the
+  // agent id). Profile id only fills in when no model is reported.
+  const actualModel = String(health?.realtimeModel || health?.realtimeModelProfile?.id || '').trim()
   if (requestedModel && actualModel && requestedModel !== actualModel) {
     throw new Error(`现有 Gateway Realtime 模型 ${actualModel} 与请求 ${requestedModel} 不一致；请关闭旧 Gateway 后重试`)
   }

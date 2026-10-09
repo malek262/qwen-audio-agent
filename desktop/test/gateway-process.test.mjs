@@ -206,6 +206,27 @@ test('validates the StepFun model through the provider-owned model field', () =>
   }, env).code, 'realtime-model')
 })
 
+test('hosted-agent providers match on the configured model, not the family profile id', () => {
+  // ElevenLabs reports realtimeModelProfile.id 'elevenlabs-agent' (a family
+  // constant) while the configured model is the agent id; comparing against
+  // the profile id falsely refuses a healthy gateway and blanks the pickers.
+  const env = {
+    QWEN_AUDIO_REALTIME_PROVIDER: 'elevenlabs',
+    ELEVENLABS_AGENT_ID: 'agent_123',
+    ELEVENLABS_API_KEY: 'el-key',
+    AGENT_PROTOCOL: 'opencode',
+  }
+  const health = {
+    ...compatibleHealth(env),
+    realtimeModel: 'agent_123',
+    realtimeModelProfile: { id: 'elevenlabs-agent' },
+  }
+  assert.equal(desktopGatewayCompatibility(health, env).compatible, true)
+  assert.equal(desktopGatewayCompatibility({
+    ...health, realtimeModel: 'agent_DIFFERENT',
+  }, env).code, 'realtime-model')
+})
+
 test('keeps non-model compatibility warnings attachable', () => {
   const healthEnv = {
     DASHSCOPE_API_KEY: 'desktop-key',

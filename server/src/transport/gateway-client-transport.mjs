@@ -384,6 +384,7 @@ export function attachGatewayClientTransport(server, {
         return
       }
       const protocolOutcome = clientProtocol.receive(event)
+      if (event?.type === 'audio.append') process.stderr.write('[probe] transport saw audio.append\n')
       // WebSocket control-frame pongs are not reliably observable after every
       // reverse proxy. Any accepted application frame proves the Client is alive.
       if (!protocolOutcome.close && (

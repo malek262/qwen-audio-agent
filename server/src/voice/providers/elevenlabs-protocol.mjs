@@ -36,6 +36,15 @@ export function createElevenLabsProtocol() {
   let turnEnded = false
   let lastActivityAt = 0
   const TURN_IDLE_MS = 400
+  // The service fires `interruption` for two very different causes: a genuine
+  // user barge-in (restore speech_started so the client stops playback), and
+  // the echo of a gateway user_message pre-empting the agent (synthesizing
+  // speech_started there would cancel the response the gateway just
+  // requested and wedge userSpeaking — the result-delivery deadlock). Tell
+  // them apart by recency of the last prompted user_message.
+  let lastPromptedUserMessageAt = 0
+  let synthesizedSpeechItemId = ''
+  const PREEMPTION_ECHO_MS = 2_500
 
   const ensureResponse = events => {
     if (!activeResponseId) activeResponseId = id('response')
@@ -201,6 +210,15 @@ export function createElevenLabsProtocol() {
         // A committed user turn means any active agent turn is over, even if
         // the service skipped the interruption event.
         finishResponse(events)
+        // Close the speech span synthesized from the barge-in interruption;
+        // ElevenLabs has no native speech_stopped event.
+        if (synthesizedSpeechItemId) {
+          events.push({
+            type: 'input_audio_buffer.speech_stopped',
+            item_id: synthesizedSpeechItemId,
+          })
+          synthesizedSpeechItemId = ''
+        }
         if (transcript) {
           events.push({
             type: 'conversation.item.input_audio_transcription.completed',
@@ -215,12 +233,18 @@ export function createElevenLabsProtocol() {
         const eventId = Number(event.interruption_event?.event_id ?? -1)
         if (eventId >= 0) lastInterruptId = eventId
         interrupted = true
-        // Only close the response. Unlike client-VAD providers, ElevenLabs
-        // reports no user-speech start, and its interruption also fires when a
-        // gateway user_message pre-empts the agent — synthesizing
-        // speech_started here would poison the turn state (userSpeaking stuck)
-        // and cancel the very response the runtime just requested.
+        const events = []
         finishResponse(events, 'cancelled')
+        // Genuine user barge-in: open a voice turn so the runtime clears
+        // playback and surfaces 'listening'. The transcript that follows
+        // closes the synthesized speech span (speech_stopped below).
+        if (Date.now() - lastPromptedUserMessageAt > PREEMPTION_ECHO_MS) {
+          synthesizedSpeechItemId = id('el_speech')
+          events.push({
+            type: 'input_audio_buffer.speech_started',
+            item_id: synthesizedSpeechItemId,
+          })
+        }
         return events
       }
 
@@ -316,6 +340,7 @@ export function createElevenLabsProtocol() {
       // contextual_update channel instead.
       if (!contextOnly || item?.elPrompt) {
         promptedTurn = true
+        lastPromptedUserMessageAt = Date.now()
         return { type: 'user_message', text }
       }
       return { type: 'contextual_update', text }
