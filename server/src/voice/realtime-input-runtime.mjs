@@ -206,6 +206,14 @@ export class RealtimeInputRuntime {
   }
 
   #completeTranscript(event) {
+    // Providers without a speech-started event (ElevenLabs) deliver only the
+    // finalized transcript. Without a fresh turn per utterance every
+    // transcript resolves to the last committed turn id and the client
+    // dedupes them all into one immutable bubble — the user's words vanish.
+    if (!this.turns.userSpeaking && this.turns.isCurrentCommitted()) {
+      const fresh = this.turns.beginVoice(null)
+      if (fresh.accepted) this.turns.endSpeech()
+    }
     const completedInput = this.turns.completeInput(event.item_id)
     const transcriptTurn = completedInput.context
     if (

@@ -247,7 +247,17 @@ async function main() {
       language: options.language,
       prompt,
     },
-    asr: { ...(existingConfig.asr || {}), quality: 'high', provider: 'scribe_realtime', user_input_audio_format: 'pcm_16000' },
+    asr: {
+      ...(existingConfig.asr || {}),
+      quality: 'high',
+      // Scribe v2 Realtime is the best ASR this account can run: scribe_v2*
+      // values normalize to it and scribe_v3_live* require ElevenLabs to
+      // enable them per-account. Boost technical English loanwords Arabic
+      // speakers mix in.
+      provider: 'scribe_realtime',
+      user_input_audio_format: 'pcm_16000',
+      keywords: ['OpenCode', 'ElevenLabs', 'API', 'SDK', 'backend', 'frontend'],
+    },
     conversation: {
       ...(existingConfig.conversation || {}),
       // The service default is 600s and hard-drops longer conversations.
@@ -259,6 +269,16 @@ async function main() {
       // prompt's job, not a slower turn detector's.
       turn_model: 'turn_v3',
       turn_eagerness: 'normal',
+      // Start LLM generation during the silence window instead of waiting for
+      // full turn confidence — cuts perceived latency without shortening the
+      // window itself (Arabic mid-sentence pauses stay safe).
+      speculative_turn: true,
+      soft_timeout_config: {
+        ...(existingConfig.turn?.soft_timeout_config || {}),
+        // Mask slow LLM first tokens with a short Arabic filler.
+        timeout_seconds: 3.0,
+        message: 'لحظة…',
+      },
     },
     tts: {
       ...(existingConfig.tts || {}),

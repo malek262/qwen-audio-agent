@@ -235,4 +235,10 @@ export async function configureAcpSession({
   if (model && profile.sessionModelConfiguration !== false) {
     await forceSessionModel({ client, label, model, protocol }, session, options)
   }
+  // forceSessionModel refreshes session.response.configOptions after a model
+  // override; hand callers the freshest catalog so the model picker and the
+  // persisted registry never go stale.
+  return Array.isArray(session?.response?.configOptions)
+    ? session.response.configOptions
+    : options
 }

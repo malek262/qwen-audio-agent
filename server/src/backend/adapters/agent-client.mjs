@@ -81,6 +81,14 @@ export class AgentClient {
     return this.adapter.uiUrl?.(options.ownerId) || Promise.resolve(null)
   }
 
+  warmup(ownerId) {
+    // Only ACP adapters own a coordinator session + model catalog.
+    if (typeof this.adapter.ensureCoordinatorSession !== 'function') {
+      return Promise.resolve(null)
+    }
+    return this.adapter.ensureCoordinatorSession(ownerId)
+  }
+
   close() {
     return this.adapter.close()
   }
@@ -187,5 +195,10 @@ export const agent = {
   recoverDelegatedWork: (task, options = {}) =>
     requireAgent().recoverDelegatedWork(task, options),
   uiUrl: (options = {}) => requireAgent().uiUrl(options),
+  // Warm the coordinator session once at boot so the ACP configOptions model
+  // catalog reaches the persisted registry before the first delegated task.
+  warmup: (ownerId) => (config.agentProtocol
+    ? requireAgent().warmup(ownerId)
+    : Promise.resolve(null)),
   close: () => sharedAgent ? sharedAgent.close() : Promise.resolve(),
 }

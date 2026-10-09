@@ -114,6 +114,10 @@ export class RealtimeTurnState {
       && context.turnGeneration < this.committedTurnGeneration
   }
 
+  isCurrentCommitted() {
+    return this.committedTurnGeneration === this.turnGeneration
+  }
+
   commit(context) {
     if (!context?.turnId) return false
     if (

@@ -157,6 +157,34 @@ test('keeps consecutive utterances separate when the provider reuses an item id'
   assert.deepEqual(records.map(record => record.turnId), ['voice-1', 'voice-2'])
 })
 
+test('transcript-only providers (no speech_started) give every utterance its own turn', () => {
+  const { runtime, events, records } = harness()
+  const utterances = ['الجملة الأولى', 'الجملة الثانية', 'الجملة الثالثة']
+
+  for (const [index, transcript] of utterances.entries()) {
+    runtime.handleProviderEvent({
+      type: 'conversation.item.input_audio_transcription.completed',
+      item_id: `el_input_${index}`,
+      transcript,
+    })
+  }
+
+  const finals = events.filter(event => (
+    event.type === 'transcript.final' && event.role === 'user'
+  ))
+  // Each utterance must land on a fresh turn id; sharing one turn id makes
+  // the client treat later utterances as duplicates of the first.
+  assert.deepEqual(finals.map(event => [event.turnId, event.content]), [
+    ['voice-1', utterances[0]],
+    ['voice-2', utterances[1]],
+    ['voice-3', utterances[2]],
+  ])
+  assert.deepEqual(
+    records.map(record => record.turnId),
+    ['voice-1', 'voice-2', 'voice-3'],
+  )
+})
+
 test('manual text input supersedes speech and reaches the frontend once', async () => {
   const { runtime, turns, events, records, calls } = harness()
   runtime.handleProviderEvent({

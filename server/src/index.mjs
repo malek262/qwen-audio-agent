@@ -101,6 +101,13 @@ try {
   }
   const agentModule = await import('./backend/adapters/agent-client.mjs')
   agentClient = agentModule.agent
+  // Warm the backend coordinator session in the background: the ACP
+  // configOptions model catalog lands in the persisted registry before the
+  // first delegated task, and the first task skips session creation.
+  // Failures (backend down, bad model) must never block the voice gateway.
+  Promise.resolve(agentClient.warmup?.('user_personal')).catch(error => {
+    logger.warn('backend.warmup_failed', { error })
+  })
   process.once('SIGINT', () => {
     stopAndExit('SIGINT')
   })
