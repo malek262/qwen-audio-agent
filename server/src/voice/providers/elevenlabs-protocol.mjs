@@ -20,11 +20,42 @@ function textFromItem(item) {
 // client_tool_result natively resumes the agent's turn. Response lifecycle
 // events are synthesized from audio chunks (turn start) and agent_response
 // (turn end), mirroring how the runtime already drives Google Live.
+// Echo comparison normalizes Arabic orthography so dialect spelling
+// differences between TTS text and ASR output do not hide a match.
+function normalizeSpeechWords(text) {
+  return String(text || '')
+    .replace(/[ً-ْٰ]/g, '')
+    .replace(/[أإآٱ]/g, 'ا')
+    .replace(/ى/g, 'ي')
+    .replace(/ة/g, 'ه')
+    .toLowerCase()
+    .replace(/[^؀-ۿa-z0-9 ]/g, ' ')
+    .split(' ')
+    .filter(Boolean)
+}
+
+function echoContainment(transcript, agentText) {
+  const words = normalizeSpeechWords(transcript)
+  // Short acknowledgements (تمام، نعم، أوكي) repeat constantly in genuine
+  // conversation — never classify them as echo.
+  if (words.length < 3) return 0
+  const agentWords = new Set(normalizeSpeechWords(agentText))
+  if (!agentWords.size) return 0
+  return words.filter(word => agentWords.has(word)).length / words.length
+}
+
 export function createElevenLabsProtocol() {
   const responseIds = new Set()
   let activeResponseId = ''
   let activeTurnEventId = null
   let interrupted = false
+  // Recent agent speech, kept for speaker-echo detection: when the agent's
+  // voice leaks back into the microphone, the service transcribes it as a
+  // user turn. Comparing against what the agent just said lets us drop the
+  // phantom turn instead of displaying and persisting the agent's own words
+  // as the user's.
+  const recentAgentTexts = []
+  const AGENT_TEXT_WINDOW_MS = 15_000
   let lastInterruptId = -1
   let muted = false
   // True when the last conversation item written to the service already
@@ -164,6 +195,14 @@ export function createElevenLabsProtocol() {
         // would present a phantom cancelled turn and fail announcement
         // acknowledgement, so skip contentless events entirely.
         if (!text && !activeResponseId) return events.length ? events : null
+        if (text) {
+          const now = Date.now()
+          while (recentAgentTexts.length && now - recentAgentTexts[0].at > AGENT_TEXT_WINDOW_MS) {
+            recentAgentTexts.shift()
+          }
+          recentAgentTexts.push({ text, at: now })
+          if (recentAgentTexts.length > 4) recentAgentTexts.shift()
+        }
         const responseId = ensureResponse(events)
         if (eventId >= 0) activeTurnEventId = eventId
         lastActivityAt = Date.now()
@@ -219,7 +258,13 @@ export function createElevenLabsProtocol() {
           })
           synthesizedSpeechItemId = ''
         }
-        if (transcript) {
+        // Speaker echo: the transcript is (a fragment of) the agent's own
+        // recent reply leaking back through the microphone. Drop it — showing
+        // or persisting it would put the agent's words in the user's mouth.
+        const echoed = transcript && recentAgentTexts.some(entry => (
+          echoContainment(transcript, entry.text) >= 0.6
+        ))
+        if (transcript && !echoed) {
           events.push({
             type: 'conversation.item.input_audio_transcription.completed',
             item_id: id('el_input'),

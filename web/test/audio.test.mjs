@@ -2,12 +2,46 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
   audioSchedulingLeadSeconds,
+  createEchoGate,
   createPcmPlaybackQueue,
   createRealtimeAudioSendController,
   createStreamingResampler,
   mergePcmPlaybackItems,
+  pcmRms,
   resample,
 } from '../src/realtime/audio.js'
+
+test('echo gate silences playback-level mic energy and passes real speech', () => {
+  let now = 1_000
+  const gate = createEchoGate({ now: () => now })
+
+  // No playback yet: everything passes (never gates a quiet room).
+  assert.equal(gate.passMic(0.001), true)
+
+  // Loud agent playback is audible: the measured echo residual (~0.02 RMS
+  // after AEC on a loud speaker) is gated, real close-talk speech passes.
+  gate.trackPlayback(0.3, now)
+  assert.equal(gate.passMic(0.02), false)
+  assert.equal(gate.passMic(0.12), true)
+
+  // The echo arrives ~250ms after the sound; the window must still cover it.
+  now += 400
+  assert.equal(gate.passMic(0.02), false)
+
+  // Long after playback ends the mic is free again, even for whispers.
+  now += 2_000
+  assert.equal(gate.passMic(0.005), true)
+
+  // An interruption clears the tracked window immediately.
+  gate.trackPlayback(0.3, now)
+  gate.clear()
+  assert.equal(gate.passMic(0.005), true)
+})
+
+test('pcmRms measures silence and full-scale correctly', () => {
+  assert.equal(pcmRms(new Float32Array(16)), 0)
+  assert.equal(pcmRms(new Float32Array(16).fill(0.5)), 0.5)
+})
 
 test('resamples audio to the requested approximate length', () => {
   const input = new Float32Array(480)

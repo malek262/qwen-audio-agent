@@ -46,6 +46,58 @@ test('barge-in interruption synthesizes speech_started and the transcript closes
   )))
 })
 
+test('speaker echo of the agent\'s own reply is dropped, not shown as user speech', () => {
+  const protocol = createElevenLabsProtocol()
+  agentTurn(protocol)
+  // The agent's just-spoken reply (tracked for echo comparison).
+  protocol.normalizeIncoming({
+    type: 'agent_response',
+    agent_response_event: {
+      agent_response: 'مرة واحد بخيل ابنه نجح وجاب تسعين بالمية',
+      event_id: 2,
+    },
+  })
+
+  const echo = protocol.normalizeIncoming({
+    type: 'user_transcript',
+    user_transcription_event: {
+      user_transcript: 'طيب مرة واحد بخيل ابنه نجح وجاب تسعين',
+    },
+  }) || []
+  assert.equal(
+    echo.some(e => e.type === 'conversation.item.input_audio_transcription.completed'),
+    false,
+    'an echo transcript must never become a user message',
+  )
+
+  // A genuine reply that merely shares one word survives.
+  const real = protocol.normalizeIncoming({
+    type: 'user_transcript',
+    user_transcription_event: { user_transcript: 'لا شو هالحكي، كمّل القصة من عند نجح' },
+  }) || []
+  assert.equal(
+    real.some(e => e.type === 'conversation.item.input_audio_transcription.completed'),
+    true,
+  )
+})
+
+test('short acknowledgements that repeat agent words are never echo-dropped', () => {
+  const protocol = createElevenLabsProtocol()
+  agentTurn(protocol)
+  protocol.normalizeIncoming({
+    type: 'agent_response',
+    agent_response_event: { agent_response: 'تمام، تمام، خلصت المهمة بنجاح', event_id: 2 },
+  })
+  const events = protocol.normalizeIncoming({
+    type: 'user_transcript',
+    user_transcription_event: { user_transcript: 'تمام' },
+  }) || []
+  assert.equal(
+    events.some(e => e.type === 'conversation.item.input_audio_transcription.completed'),
+    true,
+  )
+})
+
 test('interruption echoing a gateway user_message does not open a voice turn', () => {
   const protocol = createElevenLabsProtocol()
   agentTurn(protocol)

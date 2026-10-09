@@ -140,6 +140,51 @@ export function decodePcm(base64) {
   return output
 }
 
+export function pcmRms(samples) {
+  if (!samples?.length) return 0
+  let sum = 0
+  for (let index = 0; index < samples.length; index += 1) {
+    sum += samples[index] * samples[index]
+  }
+  return Math.sqrt(sum / samples.length)
+}
+
+// Speaker-mode echo gate. Chromium's AEC removes the linear echo but leaves a
+// non-linear residual (room reverb, speaker distortion) that hosted ASR can
+// still transcribe as user speech — the agent then interrupts itself with its
+// own voice. While playback is audible, mic chunks whose energy stays within
+// the measured echo floor of recent playback are replaced with silence. Real
+// barge-in speech at the microphone is several times louder than the
+// residual, so it passes.
+export function createEchoGate({
+  windowMs = 900,
+  ratio = 0.35,
+  floor = 0.045,
+  now = () => Date.now(),
+} = {}) {
+  let entries = []
+  const prune = at => {
+    const cutoff = at - windowMs
+    while (entries.length && entries[0].t < cutoff) entries.shift()
+  }
+  return {
+    trackPlayback(rms, at = now()) {
+      prune(at)
+      entries.push({ t: at, rms })
+    },
+    clear() {
+      entries = []
+    },
+    passMic(rms, at = now()) {
+      prune(at)
+      if (!entries.length) return true
+      let peak = 0
+      for (const entry of entries) if (entry.rms > peak) peak = entry.rms
+      return rms > Math.max(floor, peak * ratio)
+    },
+  }
+}
+
 export const REALTIME_AUDIO_SEND_HIGH_WATER_BYTES = 64 * 1024
 export const REALTIME_AUDIO_SEND_LOW_WATER_BYTES = 16 * 1024
 

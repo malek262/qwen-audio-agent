@@ -19,11 +19,13 @@ import { GatewayClient } from '../../../shared/gateway/client-sdk.mjs'
 import { gatewayReferenceClientCapabilities } from '../../../shared/gateway/client-profiles.mjs'
 import {
   audioSchedulingLeadSeconds,
+  createEchoGate,
   createPcmPlaybackQueue,
   createRealtimeAudioSendController,
   createStreamingResampler,
   decodePcm,
   pcmBase64,
+  pcmRms,
 } from './audio.js'
 import { createMicrophoneAudioWorkletNode } from './microphone-audio-worklet.js'
 import {
@@ -277,6 +279,8 @@ export default function useRealtimeVoice({
     failedResponses: new Set(),
     queue: null,
   })
+  const echoGateRef = useRef(null)
+  if (!echoGateRef.current) echoGateRef.current = createEchoGate()
   eventRef.current = onEvent
   inputErrorRef.current = onInputError
   clientActionRef.current = onClientAction
@@ -376,6 +380,9 @@ export default function useRealtimeVoice({
 
   const stopPlayback = useCallback((reason = '') => {
     const playback = playbackRef.current
+    // A user interruption is real speech that beat the gate; drop the tracked
+    // playback window so the same gate never eats the follow-up utterance.
+    if (reason === 'user_interruption') echoGateRef.current?.clear()
     const activeResponseIds = new Set([
       ...playback.startTimers.keys(),
       ...playback.endTimers.keys(),
@@ -613,6 +620,9 @@ export default function useRealtimeVoice({
     let item
     try {
       const samples = decodePcm(base64)
+      // Feed the echo gate: mic chunks below the recent-playback energy floor
+      // are the agent's own voice coming back through the speakers.
+      echoGateRef.current?.trackPlayback(pcmRms(samples))
       item = {
         samples,
         sampleRate,
@@ -937,10 +947,15 @@ export default function useRealtimeVoice({
             moduleUrl: microphoneAudioWorkletProcessorUrl,
             onSamples: rawSamples => {
               if (captureClosed) return
-              const samples = microphoneSamplesDuringManualInput(
+              let samples = microphoneSamplesDuringManualInput(
                 rawSamples,
                 manualInputPendingRef.current,
               )
+              // Speaker echo of the agent's own voice must not reach the
+              // realtime provider, or the agent interrupts and answers itself.
+              if (echoGateRef.current && !echoGateRef.current.passMic(pcmRms(rawSamples))) {
+                samples = new Float32Array(samples.length)
+              }
               if (wakeWordOnlyRef.current) {
                 inputResampler.reset()
                 inputResamplerSocket = null

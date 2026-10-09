@@ -280,6 +280,13 @@ async function main() {
         message: 'لحظة…',
       },
     },
+    vad: {
+      ...(existingConfig.vad || {}),
+      // The agent's own voice coming back through the user's speakers is a
+      // "background voice"; without this the service transcribes it as a
+      // user turn and the agent interrupts and answers itself.
+      background_voice_detection: true,
+    },
     tts: {
       ...(existingConfig.tts || {}),
       agent_output_audio_format: 'pcm_16000',
