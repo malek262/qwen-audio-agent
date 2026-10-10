@@ -72,7 +72,7 @@ test('buildSession includes the assembled prompt unless the override is disabled
     agentContext: { client: { timeZone: 'Asia/Amman', locale: 'ar-JO' } },
     sessionOptions: {},
   })
-  assert.match(session.prompt, /voice frontend of qwen-audio-agent/)
+  assert.match(session.prompt, /You are Noor \(.+\), the voice of qwen-audio-agent/)
   assert.match(session.prompt, /time_zone="Asia\/Amman"/)
 
   config.elevenlabsPromptOverride = false

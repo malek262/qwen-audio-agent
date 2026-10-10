@@ -115,11 +115,12 @@ test('loads one canonical frontend policy separately from runtime context', () =
   assert.match(prompt, /Do not replace tool calls with verbal promises/)
   assert.match(prompt, /While the tool has not yet returned, cancellation is still in progress/)
   // The canonical policy is English; English runs ~1.6x the character count
-  // of the original Chinese for the same content. 12000 keeps headroom under
-  // the 16000-char loadFrontendPrompt cap.
-  assert.ok(prompt.length < 12000)
+  // of the original Chinese for the same content. 14000 keeps headroom under
+  // the 16000-char loadFrontendPrompt cap while leaving room for the hosted
+  // persona and the audio-tag delivery contract.
+  assert.ok(prompt.length < 14000)
   assert.match(assistant, /## Identity/)
-  assert.match(assistant, /Qwen Audio/)
+  assert.match(assistant, /Noor/)
   assert.doesNotMatch(context, /# Instruction hierarchy/)
   assert.match(context, /<runtime_context>/)
 })

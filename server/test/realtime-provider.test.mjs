@@ -933,7 +933,7 @@ test('builds cache-friendly policy, identity, memory and reconnect context', () 
     }],
   })
 
-  assert.match(prompt, /Qwen Audio/)
+  assert.match(prompt, /Noor/)
   assert.match(prompt, /unified assistant engaging in full-duplex voice interaction/)
   assert.match(prompt, /Never describe yourself as a frontend model, backend model/)
   assert.match(prompt, /Asia\/Shanghai/)
