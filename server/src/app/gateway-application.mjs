@@ -450,7 +450,11 @@ const start = ({ host = config.host, port = config.port } = {}) => {
   server.listen(port, host, () => {
     const address = server.address()
     const boundPort = address && typeof address === 'object' ? address.port : port
-    const origin = `http://${host}:${boundPort}`
+    // A wildcard bind (LAN mode) listens on every interface, but 0.0.0.0 is
+    // not a dialable address. Report the loopback origin so hosts comparing
+    // the ready origin against their configured loopback URL stay compatible.
+    const reportHost = ['0.0.0.0', '::', '[::]'].includes(host) ? '127.0.0.1' : host
+    const origin = `http://${reportHost}:${boundPort}`
     const readyReport = {
       type: 'qwen-audio-agent:gateway-ready',
       origin,
