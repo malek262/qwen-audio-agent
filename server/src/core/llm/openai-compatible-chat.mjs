@@ -5,7 +5,7 @@ export function createOpenAiCompatibleTextCall({
   baseUrl,
   apiKey,
   model,
-  timeoutMs = 10_000,
+  timeoutMs = 20_000,
   fetchImpl = globalThis.fetch,
 } = {}) {
   if (!apiKey || !baseUrl || !model) return null
