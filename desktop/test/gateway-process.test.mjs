@@ -6,6 +6,7 @@ import {
   desktopGatewayCompatibility,
   desktopExecutablePath,
   desktopGatewayEnvironment,
+  desktopGatewayHost,
   EmbeddedGateway,
   GATEWAY_READY_MESSAGE,
 } from '../src/gateway-process.mjs'
@@ -545,4 +546,13 @@ test('macOS desktop PATH inherits the expanded process PATH plus common location
     '/opt/homebrew/bin',
     '/usr/local/bin',
   ])
+})
+
+test('desktop gateway host stays loopback unless LAN mode is explicitly enabled', () => {
+  assert.equal(desktopGatewayHost({}), '127.0.0.1')
+  assert.equal(desktopGatewayHost({ QWEN_AUDIO_GATEWAY_LAN: '0' }), '127.0.0.1')
+  assert.equal(desktopGatewayHost({ QWEN_AUDIO_GATEWAY_LAN: 'no' }), '127.0.0.1')
+  assert.equal(desktopGatewayHost({ QWEN_AUDIO_GATEWAY_LAN: '1' }), '0.0.0.0')
+  assert.equal(desktopGatewayHost({ QWEN_AUDIO_GATEWAY_LAN: 'true' }), '0.0.0.0')
+  assert.equal(desktopGatewayHost({ QWEN_AUDIO_GATEWAY_LAN: ' yes ' }), '0.0.0.0')
 })

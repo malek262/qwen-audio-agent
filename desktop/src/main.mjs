@@ -48,6 +48,7 @@ import {
 import {
   desktopGatewayCompatibility,
   desktopGatewayEnvironment,
+  desktopGatewayHost,
   EmbeddedGateway,
   resolveBorrowedGatewayAttachment,
 } from './gateway-process.mjs'
@@ -299,7 +300,6 @@ function configuredGatewayEnvironment() {
     sourceRoot,
   })
 }
-
 function gatewayPort(origin) {
   const port = Number(new URL(origin).port)
   return Number.isInteger(port) && port > 0 ? port : 3101
@@ -344,6 +344,10 @@ async function startLocalGateway(origin, accessToken = gatewayAccessToken) {
   if (!embeddedGateway) {
     embeddedGateway = new EmbeddedGateway({
       preferredPort: gatewayPort(origin),
+      // LAN mode (QWEN_AUDIO_GATEWAY_LAN=1 in the client config) binds the
+      // embedded gateway to all interfaces for paired phones; loopback
+      // otherwise.
+      host: desktopGatewayHost(parseEnv(readFileSync(runtimeEnvironment.configPath, 'utf8'))),
       envFactory: configuredGatewayEnvironment,
       logger: logger.child({ subsystem: 'embedded_gateway' }),
     })

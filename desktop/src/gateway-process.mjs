@@ -47,6 +47,16 @@ export function desktopExecutablePath({
   ], separator)
 }
 
+// LAN mode is opt-in through the client config file (QWEN_AUDIO_GATEWAY_LAN=1,
+// the same switch the CLI's --lan flag sets). The embedded gateway then binds
+// all interfaces so paired phones on the same network can reach it; remote
+// routes still require a paired-device credential, so the exposure stays
+// authenticated-only.
+export function desktopGatewayHost(configured = {}) {
+  const flag = String(configured.QWEN_AUDIO_GATEWAY_LAN || '').trim().toLowerCase()
+  return ['1', 'true', 'yes'].includes(flag) ? '0.0.0.0' : '127.0.0.1'
+}
+
 export function desktopGatewayEnvironment({
   env = process.env,
   configured = {},
@@ -54,8 +64,7 @@ export function desktopGatewayEnvironment({
   sourceRoot = '',
   platform = process.platform,
 } = {}) {
-  const merged = mergeRealtimeEnvironment(env, migrateRealtimeFileEnvironment(configured))
-  // Wake-word capture and inference belong to the Desktop Client. Do not leak
+  const merged = mergeRealtimeEnvironment(env, migrateRealtimeFileEnvironment(configured))  // Wake-word capture and inference belong to the Desktop Client. Do not leak
   // that client preference or its model path into the Gateway child process.
   delete merged.QWEN_AUDIO_WAKE_WORD_ENABLED
   delete merged.QWEN_AUDIO_WAKE_WORD_MODEL_DIR
