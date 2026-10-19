@@ -276,6 +276,38 @@ npm run desktop:build:linux      # Linux (AppImage + deb, no signing)
 For visuals, orb behavior, and build instructions, see the
 [desktop documentation](docs/desktop/overview.md).
 
+### Use from your phone (same Wi-Fi)
+
+The Gateway ships with an authenticated remote-access stack (pairing page,
+device credentials, HttpOnly cookies). To reach it from a phone on the same
+network, enable LAN mode in `~/.config/qwaudio/config.env`:
+
+```bash
+HOST=0.0.0.0
+QWEN_AUDIO_GATEWAY_LAN=1
+PORT=3101
+```
+
+Restart the desktop app, then pair the phone from any terminal on the PC:
+
+```bash
+curl -X POST http://127.0.0.1:3101/api/access/devices \
+  -H 'Content-Type: application/json' \
+  -d '{"device":{"type":"mobile","label":"My Phone"}}'
+```
+
+Open the returned `connection_code` URL on the phone and confirm pairing —
+the credential lives in an HttpOnly cookie and can be revoked any time via
+`GET /api/access/devices` (local only). Remote routes stay
+authentication-only; loopback behavior is unchanged when LAN mode is off.
+
+Browsers only grant microphone access in a secure context, so voice from the
+phone needs HTTPS. On a plain LAN without tunnels, the one-time workaround is
+Chrome's `chrome://flags/#unsafely-treat-insecure-origin-as-secure` with the
+gateway URL (e.g. `http://192.168.1.20:3101`); text chat works without it.
+For always-on HTTPS remote access, run the Gateway with `--tailnet`
+(Tailscale serve) instead.
+
 ## Examples and Scenario Expansion
 
 The current qwen-audio-agent framework focuses on desktop productivity: users
